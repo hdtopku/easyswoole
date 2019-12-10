@@ -59,11 +59,13 @@ class Client
             $ret = null;
             if($stmt){
                 $ret = $stmt->execute($this->queryBuilder()->getLastBindParams(),$timeout);
+            }else{
+                $ret = false;
             }
             if($this->onQuery){
                 call_user_func($this->onQuery,$ret,$this,$start);
             }
-            if($this->mysqlClient()->errno){
+            if($ret === false && $this->mysqlClient()->errno){
                 throw new Exception($this->mysqlClient()->error);
             }
             return $ret;
@@ -88,7 +90,7 @@ class Client
         if($this->onQuery){
             call_user_func($this->onQuery,$ret,$this,$start);
         }
-        if($this->mysqlClient()->errno){
+        if($ret === false && $this->mysqlClient()->errno){
             throw new Exception($this->mysqlClient()->error);
         }
         return $ret;

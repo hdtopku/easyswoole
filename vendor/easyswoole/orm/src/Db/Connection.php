@@ -27,6 +27,8 @@ class Connection implements ConnectionInterface
         $result = new Result();
         $client = $this->getClient();
         $ret = null;
+        $errno = 0;
+        $error = '';
         try{
             if($rawQuery){
                 $ret = $client->rawQuery($builder->getLastQuery(),$this->config->getTimeout());
@@ -34,22 +36,41 @@ class Connection implements ConnectionInterface
                 $stmt = $client->mysqlClient()->prepare($builder->getLastPrepareQuery(),$this->config->getTimeout());
                 if($stmt){
                     $ret = $stmt->execute($builder->getLastBindParams(),$this->config->getTimeout());
+                }else{
+                    $ret = false;
                 }
             }
+
+            $errno = $client->mysqlClient()->errno;
+            $error = $client->mysqlClient()->error;
+            $insert_id     = $client->mysqlClient()->insert_id;
+            $affected_rows = $client->mysqlClient()->affected_rows;
+            /*
+             * 重置mysqli客户端成员属性，避免下次使用
+             */
+            $client->mysqlClient()->errno = 0;
+            $client->mysqlClient()->error = '';
+            $client->mysqlClient()->insert_id     = 0;
+            $client->mysqlClient()->affected_rows = 0;
+            //结果设置
             $result->setResult($ret);
-            $result->setLastError($client->mysqlClient()->error);
-            $result->setLastErrorNo($client->mysqlClient()->errno);
-            $result->setLastInsertId($client->mysqlClient()->insert_id);
-            $result->setAffectedRows($client->mysqlClient()->affected_rows);
+            $result->setLastError($error);
+            $result->setLastErrorNo($errno);
+            $result->setLastInsertId($insert_id);
+            $result->setAffectedRows($affected_rows);
         }catch (\Throwable $throwable){
             throw $throwable;
         }finally{
-            if($client->mysqlClient()->errno){
-                if(in_array($client->mysqlClient()->errno,[2006,2013])){
+            if($errno){
+                /*
+                    * 断线的时候回收链接
+                */
+                if(in_array($errno,[2006,2013])){
                     $this->pool->unsetObj($client);
                 }
-                throw new Exception("{$client->mysqlClient()->error}");
+                throw new Exception($error);
             }
+
         }
         return $result;
     }
@@ -61,7 +82,7 @@ class Connection implements ConnectionInterface
         if($client){
             return $client;
         }else{
-            throw new PoolEmpty("pool empty for host {$this->config->getHost()}");
+            throw new PoolEmpty("mysql pool empty at host:{$this->config->getHost()} port:{$this->config->getPort()} db:{$this->config->getDatabase()}");
         }
     }
 

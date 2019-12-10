@@ -76,6 +76,16 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals('SELECT  * FROM whereGet WHERE  col3 IN ( ?, ?, ? ) ',$this->builder->getLastPrepareQuery());
         $this->assertEquals('SELECT  * FROM whereGet WHERE  col3 IN ( 1, 2, 3 ) ',$this->builder->getLastQuery());
         $this->assertEquals([1,2,3],$this->builder->getLastBindParams());
+
+
+        $this->builder->where("find_in_set(1, test)")->get('whereGet');
+        $this->assertEquals('SELECT  * FROM whereGet WHERE  find_in_set(1, test)', $this->builder->getLastPrepareQuery());
+
+        $this->builder->where("find_in_set(?, test)", [1])->get('whereGet');
+        $this->assertEquals('SELECT  * FROM whereGet WHERE  find_in_set(1, test)', $this->builder->getLastQuery());
+
+        $this->builder->where("(id = ? or id = ?)", [1,3])->get('whereGet');
+        $this->assertEquals('SELECT  * FROM whereGet WHERE  (id = 1 or id = 3)', $this->builder->getLastQuery());
     }
 
     function testJoinGet()
@@ -89,6 +99,23 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals('SELECT  * FROM getTable LEFT JOIN table2 on table2.col1 = getTable.col2',$this->builder->getLastPrepareQuery());
         $this->assertEquals('SELECT  * FROM getTable LEFT JOIN table2 on table2.col1 = getTable.col2',$this->builder->getLastQuery());
         $this->assertEquals([],$this->builder->getLastBindParams());
+    }
+
+    function testGroup()
+    {
+        $this->builder->groupBy("user_id")->get("test_table");
+        $this->assertEquals('SELECT  * FROM test_table GROUP BY user_id ',$this->builder->getLastPrepareQuery());
+
+        $this->builder->groupBy("FROM_UNIXTIME(create_time, '%Y%m')")->get("test_table");
+        $this->assertEquals('SELECT  * FROM test_table GROUP BY FROM_UNIXTIME(create_time, \'%Y%m\') ',$this->builder->getLastPrepareQuery());
+
+
+        $this->builder->fields([
+            "DATE_FORMAT(create_time, '%Y%m') AS month",
+            "sum(age)"
+        ])->groupBy("month")->get("test_table");
+        $this->assertEquals('SELECT  DATE_FORMAT(create_time, \'%Y%m\') AS month, sum(age) FROM test_table GROUP BY month ',$this->builder->getLastPrepareQuery());
+
     }
 
     function testJoinWhereGet()
@@ -165,6 +192,16 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals('INSERT  INTO insertTable (`a`, `b`)  VALUES (?, ?)', $this->builder->getLastPrepareQuery());
         $this->assertEquals("INSERT  INTO insertTable (`a`, `b`)  VALUES (1, 'b')", $this->builder->getLastQuery());
         $this->assertEquals([1,'b'], $this->builder->getLastBindParams());
+    }
+
+    function testInsertAll()
+    {
+        $this->builder->insertAll('insertTable', [
+            ['a' => 1, 'b' => "a"],
+            ['a' => 2, 'b' => "b"],
+        ]);
+        $this->assertEquals('INSERT  INTO insertTable (`a`, `b`)  VALUES (?, ?),(?, ?)', $this->builder->getLastPrepareQuery());
+        $this->assertEquals("INSERT  INTO insertTable (`a`, `b`)  VALUES (1, 'a'),(2, 'b')", $this->builder->getLastQuery());
     }
 
     function testSubQuery()

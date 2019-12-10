@@ -78,6 +78,19 @@ class QueryBuilder
         return $this;
     }
 
+    /**
+     * @return array
+     */
+    public function getField(): array
+    {
+        if ( !is_array($this->_field) ){
+            $field = [$this->_field];
+        }else{
+            $field = $this->_field;
+        }
+        return $field;
+    }
+
 
     /**
      * Where条件
@@ -123,17 +136,17 @@ class QueryBuilder
     {
         $allowedDirection = ["ASC", "DESC"];
         $orderbyDirection = strtoupper(trim($orderbyDirection));
-        $orderByField = preg_replace("/[^ -a-z0-9\.\(\),_`\*\'\"]+/i", '', $orderByField);
+        $orderByField = preg_replace("/[^ -a-z0-9\.\(\),_`\*\'\"%`]+/i", '', $orderByField);
         // Add table prefix to orderByField if needed.
         //FIXME: We are adding prefix only if table is enclosed into `` to distinguish aliases
         // from table names
-        $orderByField = preg_replace('/(\`)([`a-zA-Z0-9_]*\.)/', '\1' . $this->prefix . '\2', $orderByField);
+        $orderByField = preg_replace('/(\`)([`a-zA-Z0-9_%`\']*\.)/', '\1' . $this->prefix . '\2', $orderByField);
         if (empty($orderbyDirection) || !in_array($orderbyDirection, $allowedDirection)) {
             throw new Exception('Wrong order direction: ' . $orderbyDirection);
         }
         if (is_array($customFieldsOrRegExp)) {
             foreach ($customFieldsOrRegExp as $key => $value) {
-                $customFieldsOrRegExp[$key] = preg_replace("/[^\x80-\xff-a-z0-9\.\(\),_` ]+/i", '', $value);
+                $customFieldsOrRegExp[$key] = preg_replace("/[^\x80-\xff-a-z0-9\.\(\),_` %\']+/i", '', $value);
             }
             $orderByField = 'FIELD (' . $orderByField . ', "' . implode('","', $customFieldsOrRegExp) . '")';
         } elseif (is_string($customFieldsOrRegExp)) {
@@ -153,7 +166,7 @@ class QueryBuilder
      */
     public function groupBy($groupByField)
     {
-        $groupByField = preg_replace("/[^-a-z0-9\.\(\),_\* <>=!]+/i", '', $groupByField);
+        $groupByField = preg_replace("/[^-a-z0-9\.\(\),_\* <>=!%`\']+/i", '', $groupByField);
         $this->_groupBy[] = $groupByField;
         return $this;
     }
@@ -466,6 +479,26 @@ class QueryBuilder
             }
         }
         $this->_buildInsert($tableName, $insertData, 'INSERT');
+        $this->reset();
+        return $this;
+    }
+
+    public function insertAll($tableName, $insertData, $option = [])
+    {
+        $allowFields = $option['field'] ?? [];
+
+        foreach ($insertData as $data){
+            // 过滤掉不允许的字段
+            if (!empty($allowFields)) {
+                foreach ($data as $data_k => $data_v){
+                    if (!in_array($data_v, $allowFields)){
+                        unset($data[$data_k]);
+                    }
+                }
+            }
+        }
+
+        $this->_buildInsert($tableName, $insertData, $option['replace'] ? 'REPLACE' : 'INSERT');
         $this->reset();
         return $this;
     }
@@ -1028,6 +1061,7 @@ class QueryBuilder
     /**
      * 组装插入的值
      * @param $tableData
+     * @throws Exception
      */
     private function _buildInsertQuery($tableData)
     {
@@ -1035,17 +1069,36 @@ class QueryBuilder
             return;
         }
         $isInsert = preg_match('/^[INSERT|REPLACE]/', $this->_query);
-        $dataColumns = array_keys($tableData);
-        if ($isInsert) {
-            if (isset ($dataColumns[0]))
-                $this->_query .= ' (`' . implode($dataColumns, '`, `') . '`) ';
-            $this->_query .= ' VALUES (';
-        } else {
-            $this->_query .= " SET ";
-        }
-        $this->_buildDataPairs($tableData, $dataColumns, $isInsert);
-        if ($isInsert) {
-            $this->_query .= ')';
+        // 如果是二维数组则为批量插入
+        if (isset($tableData[0]) && is_array($tableData[0])){
+            $dataColumns = array_keys($tableData[0]);
+            if ($isInsert) {
+                if (isset ($dataColumns[0]))
+                    $this->_query .= ' (`' . implode('`, `', $dataColumns) . '`) ';
+                $this->_query .= ' VALUES ';
+                foreach ($tableData as $data){
+                    $this->_query .= '(';
+                    $this->_buildDataPairs($data, $dataColumns, $isInsert);
+                    $this->_query .= '),';
+                }
+                $this->_query = rtrim($this->_query, ',');
+            } else {
+                $this->_query .= " SET ";
+                $this->_buildDataPairs($tableData, $dataColumns, $isInsert);
+            }
+        }else{
+            $dataColumns = array_keys($tableData);
+            if ($isInsert) {
+                if (isset ($dataColumns[0]))
+                    $this->_query .= ' (`' . implode($dataColumns, '`, `') . '`) ';
+                $this->_query .= ' VALUES (';
+            } else {
+                $this->_query .= " SET ";
+            }
+            $this->_buildDataPairs($tableData, $dataColumns, $isInsert);
+            if ($isInsert) {
+                $this->_query .= ')';
+            }
         }
     }
 
