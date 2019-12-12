@@ -31,10 +31,14 @@ class AM extends Controller
             || array_key_exists('link', $req)) {
             if ($data['item']) {
                 Links::create()->update($req, ['id' => $data['item']['id']]);
-                $data['item'] = Links::create()->get(['link' => $data['item']['link']]);
+                $data['item'] = Links::create()
+                    ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
+                    ->get(['link' => $data['item']['link']]);
             } else if (array_key_exists('link', $req) && $req['link']) {
                 Links::create($req)->save();
-                $data['item'] = Links::create()->get(['link' => $req['link']]);
+                $data['item'] = Links::create()
+                    ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
+                    ->get(['link' => $req['link']]);
             } else if (array_key_exists('status', $req) && $req['status'] == 1) {
                 $link = Links::create()->get(['status' => 0]);
                 $link->update($req, ['id' => $link['id']]);
