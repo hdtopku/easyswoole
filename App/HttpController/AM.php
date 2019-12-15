@@ -66,7 +66,8 @@ class AM extends Controller
                 } else if ($val->status === 1) {
                     array_push($data['using'], $val);
                 } else if ($val->status === 2) {
-                    array_push($data['used'], $val);
+                    $data['usedLength'] = count($val);
+                    array_push($data['used'], array_splice($val, 0, 50));
                 } else if ($val->status === 3) {
                     array_push($data['recycle'], $val);
                 }
