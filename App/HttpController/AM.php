@@ -79,6 +79,8 @@ class AM extends Controller
         if (array_key_exists('used', $data)) {
             $data['usedLength'] = count($data['used']);
             $data['used'] = array_splice($data['used'], 0, 30);
+        } else {
+            $data['usedLength'] = 0;
         }
         $this->response()->write(json_encode(
             ['errno' => '0', 'errmsg' => 'ok', 'data' => $data],
