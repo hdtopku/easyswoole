@@ -78,7 +78,7 @@ class AM extends Controller
         $data['operator'] = Operator::create()->all();
         if (array_key_exists('used', $data)) {
             $data['usedLength'] = count($data['used']);
-            $data['used'] = array_splice($data['used'], 0, 30);
+            $data['used'] = array_splice($data['used'], 0, 20);
         } else {
             $data['usedLength'] = 0;
         }
