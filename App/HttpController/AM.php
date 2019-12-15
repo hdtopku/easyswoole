@@ -51,24 +51,23 @@ class AM extends Controller
         }
         $res = Links::create()->where($where)->where('status', 0, '!=')
             ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-            ->limit(1000)->order('update_time', 'DESC')->all();
+            ->limit(1000)->order('update_time', 'DESC')->findAll();
         $unUsed = Links::create()->where('status', 0, '=')
             ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-            ->limit(1000)->order('update_time', 'DESC')->all();
+            ->limit(1000)->order('update_time', 'DESC')->findAll();
         if ($unUsed) {
             $res = array_merge($res, $unUsed);
         }
         if ($res) {
             foreach ($res as $key => $val) {
                 $val['short_link'] = substr($val['link'], 46, 4);
-                if ($val->status === 0) {
+                if ($val['status'] === 0) {
                     array_push($data['unUsed'], $val);
-                } else if ($val->status === 1) {
+                } else if ($val['status'] === 1) {
                     array_push($data['using'], $val);
-                } else if ($val->status === 2) {
-                    $data['usedLength'] = count($val);
+                } else if ($val['status'] === 2) {
                     array_push($data['used'], array_splice($val, 0, 50));
-                } else if ($val->status === 3) {
+                } else if ($val['status'] === 3) {
                     array_push($data['recycle'], $val);
                 }
             }
@@ -77,6 +76,10 @@ class AM extends Controller
             }
         }
         $data['operator'] = Operator::create()->all();
+        if (array_key_exists('used', $data)) {
+            $data['usedLength'] = count($data['used']);
+            $data['used'] = array_splice($data['used'], 0, 50);
+        }
         $this->response()->write(json_encode(
             ['errno' => '0', 'errmsg' => 'ok', 'data' => $data],
             JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
