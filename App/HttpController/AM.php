@@ -39,7 +39,8 @@ class AM extends Controller
                 $data['item'] = Links::create()
                     ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
                     ->get(['link' => $req['link']]);
-            } else if (array_key_exists('status', $req) && $req['status'] == 1) {
+            } else if (array_key_exists('status', $req)
+                && ($req['status'] == 1 || $req['status'] == 2)) {
                 $link = Links::create()->get(['status' => 0]);
                 $link->update($req, ['id' => $link['id']]);
             }
