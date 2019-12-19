@@ -43,7 +43,7 @@ class AM extends Controller
                 && ($req['status'] == 1 || $req['status'] == 2)) {
                 $link = Links::create()->get(['status' => 0]);
                 $link->update($req, ['id' => $link['id']]);
-                $data['item'] = $link;
+                $data['item'] = Links::create()->get($link['id']);
             }
         }
         $tenDays = date('Y-m-d H:i:s', strtotime('-10 days'));
