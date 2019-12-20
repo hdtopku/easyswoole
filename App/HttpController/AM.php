@@ -78,12 +78,9 @@ class AM extends Controller
             }
         }
         $data['operator'] = Operator::create()->all();
-        if (array_key_exists('used', $data)) {
-            $data['usedLength'] = count($data['used']);
-            $data['used'] = array_splice($data['used'], 0, 7);
-        } else {
-            $data['usedLength'] = 0;
-        }
+        $data['usedLength'] = Links::create()
+            ->where('status', 2)
+            ->where('update_time', date("Y-m-d"), '>=')->count();
         $this->response()->write(json_encode(
             ['errno' => '0', 'errmsg' => 'ok', 'data' => $data],
             JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
