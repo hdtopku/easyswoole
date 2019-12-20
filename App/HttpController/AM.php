@@ -81,6 +81,11 @@ class AM extends Controller
         $data['usedLength'] = Links::create()
             ->where('status', 2)
             ->where('update_time', date("Y-m-d"), '>=')->count();
+        $data['yesterdayUsedLength'] = Links::create()
+            ->where('status', 2)
+            ->where('update_time', date("Y-m-d"), '<')
+            ->where('update_time', date("Y-m-d", strtotime("-1 day")), '>=')
+            ->count();
         if (array_key_exists('used', $data)) {
             $data['allUsedLength'] = count($data['used']);
             $data['used'] = array_splice($data['used'], 0, 6);
