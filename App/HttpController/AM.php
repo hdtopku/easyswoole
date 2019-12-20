@@ -81,6 +81,12 @@ class AM extends Controller
         $data['usedLength'] = Links::create()
             ->where('status', 2)
             ->where('update_time', date("Y-m-d"), '>=')->count();
+        if (array_key_exists('used', $data)) {
+            $data['allUsedLength'] = count($data['used']);
+            $data['used'] = array_splice($data['used'], 0, 6);
+        } else {
+            $data['allUsedLength'] = 0;
+        }
         $this->response()->write(json_encode(
             ['errno' => '0', 'errmsg' => 'ok', 'data' => $data],
             JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
