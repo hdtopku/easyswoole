@@ -54,6 +54,7 @@ class RandomData extends Controller
             $maxArr[$key] = $value;
         }
         $data = ['arr' => $arr, 'minArr'=> $minArr, 'maxArr'=>$maxArr];
+        $res =
         return $data;
     }
 
@@ -79,7 +80,8 @@ class RandomData extends Controller
                 $r[$key] = (int) $req[$key];
             }
         }
-        $this->response()->write(json_encode(
-            $this->get($r['total'], $r['avg'], $r['min'], $r['max'])));
+        $data = $this->get($r['total'], $r['avg'], $r['min'], $r['max']);
+        $res = ['errno' => '0', 'errmsg' => 'ok', 'data' => $data];
+        $this->response()->write(json_encode($res));
     }
 }
