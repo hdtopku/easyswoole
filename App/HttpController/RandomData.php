@@ -13,7 +13,7 @@ use EasySwoole\Http\AbstractInterface\Controller;
 
 class RandomData extends Controller
 {
-    function get($total = 1005, $avg = 45, $min = 5, $max = 40, $times = 49, $minTimes=13)
+    function get($total = 1005, $avg = 45, $min = 5, $max = 40, $times = 49, $minTimes=13, $step=10)
     {
         if ($min * $times > $total) {
             return array();
@@ -40,18 +40,18 @@ class RandomData extends Controller
             $r = ((float)(rand(1, 10000) / 10000) - 0.5) * $kDis * 2;
             $k = round($kAvg + $r);
             $total -= $k;
-            $arr[] = $k;
-            $difArr[] = $avg - $k;
+            $arr[] = $k * 10;
+            $difArr[] = ($avg - $k) * 10;
         }
         while ($minTimes >= 1) {
             $minTimes--;
             $pos = $this->getMinPos($difArr);
             echo $pos.',';
-            $minArr[$pos] = $difArr[$pos];
+            $minArr[$pos] = $difArr[$pos] * $step;
             unset($difArr[$pos]);
         }
         foreach ($difArr as $key => $value) {
-            $maxArr[$key] = $value;
+            $maxArr[$key] = $value * $step;
         }
         $data = ['arr' => $arr, 'minArr'=> $minArr, 'maxArr'=>$maxArr];
         return $data;
