@@ -40,18 +40,20 @@ class RandomData extends Controller
             $r = ((float)(rand(1, 10000) / 10000) - 0.5) * $kDis * 2;
             $k = round($kAvg + $r);
             $total -= $k;
-            $arr[] = $k * 10;
-            $difArr[] = ($avg - $k) * 10;
+            $arr[] = $k;
+            $difArr[] = ($avg - $k);
         }
         while ($minTimes >= 1) {
             $minTimes--;
             $pos = $this->getMinPos($difArr);
-            echo $pos.',';
             $minArr[$pos] = $difArr[$pos] * $step;
             unset($difArr[$pos]);
         }
         foreach ($difArr as $key => $value) {
             $maxArr[$key] = $value * $step;
+        }
+        foreach ($arr as $key => $value) {
+            $arr[$key] = $value * 10;
         }
         $data = ['arr' => $arr, 'minArr'=> $minArr, 'maxArr'=>$maxArr];
         return $data;
