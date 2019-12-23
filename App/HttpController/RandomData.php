@@ -54,7 +54,6 @@ class RandomData extends Controller
             $maxArr[$key] = $value;
         }
         $data = ['arr' => $arr, 'minArr'=> $minArr, 'maxArr'=>$maxArr];
-        $res =
         return $data;
     }
 
