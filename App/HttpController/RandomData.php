@@ -9,17 +9,25 @@
 namespace App\HttpController;
 
 
-class RandomData
+use EasySwoole\Http\AbstractInterface\Controller;
+
+class RandomData extends Controller
 {
-    function getRandomNumberArray($total, $times, $min, $max)
+    function get($total = 1005, $avg = 45, $min = 5, $max = 40, $times = 49, $minTimes=13)
     {
-        $data = array();
         if ($min * $times > $total) {
             return array();
         }
-
         if ($max * $times < $total) {
             return array();
+        }
+        $arr = array();
+        $difArr = array();
+        $maxArr = array();
+        $minArr = array();
+        for ($i = 0; $i < $times; $i++) {
+            $minArr[] = 0;
+            $maxArr[] = 0;
         }
         while ($times >= 1) {
             $times--;
@@ -32,9 +40,46 @@ class RandomData
             $r = ((float)(rand(1, 10000) / 10000) - 0.5) * $kDis * 2;
             $k = round($kAvg + $r);
             $total -= $k;
-            $data[] = $k;
-            echo $kmix, $kmax, $kAvg, $kDis, $r, $k, $total;
+            $arr[] = $k;
+            $difArr[] = $avg - $k;
         }
+        while ($minTimes >= 1) {
+            $minTimes--;
+            $pos = $this->getMinPos($difArr);
+            echo $pos.',';
+            $minArr[$pos] = $difArr[$pos];
+            unset($difArr[$pos]);
+        }
+        foreach ($difArr as $key => $value) {
+            $maxArr[$key] = $value;
+        }
+        $data = ['arr' => $arr, 'minArr'=> $minArr, 'maxArr'=>$maxArr];
         return $data;
+    }
+
+    function getMinPos($arr) {
+        $pos = 0;
+        $min = 9999999999;
+        foreach ($arr as $key => $value) {
+            if ($value < $min) {
+                $min = $value;
+                $pos = $key;
+            }
+        }
+        return $pos;
+    }
+
+    function index()
+    {
+        // TODO: Implement index() method.
+        $req = $this->request()->getRequestParam();
+        $r = ['total'=>1005, 'avg'=>45, 'min'=>5, 'max'=>40];
+        foreach ($r as $key => $value) {
+            if (array_key_exists($key, $req)) {
+                $r[$key] = (int) $req[$key];
+            }
+        }
+        $this->response()->write(json_encode(
+            $this->get($r['total'], $r['avg'], $r['min'], $r['max'])));
     }
 }
