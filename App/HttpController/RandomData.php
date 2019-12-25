@@ -80,6 +80,8 @@ class RandomData extends Controller
         foreach ($r as $key => $value) {
             if (array_key_exists($key, $req)) {
                 $r[$key] = (int) $req[$key] / $step;
+            } else {
+                $r[$key] = (int) $r[$key] / $step;
             }
         }
         $data = $this->get($r['total'], $r['avg'], $r['min'], $r['max']);
