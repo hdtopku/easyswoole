@@ -55,7 +55,7 @@ class RandomData extends Controller
         foreach ($arr as $key => $value) {
             $arr[$key] = $value * 10;
         }
-        $data = ['arr' => $arr, 'minArr'=> $minArr, 'maxArr'=>$maxArr];
+        $data = ['arr' => $arr, 'minArr'=> $minArr, 'maxArr'=>$maxArr, 'time'=> date('Y-m-d H:i:s')];
         return $data;
     }
 
