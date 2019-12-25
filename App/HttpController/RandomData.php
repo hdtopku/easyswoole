@@ -13,7 +13,7 @@ use EasySwoole\Http\AbstractInterface\Controller;
 
 class RandomData extends Controller
 {
-    function get($total = 1005, $avg = 45, $min = 5, $max = 40, $times = 49, $minTimes=13, $step=10)
+    function get($total = 1005, $avg = 45, $min = 5, $max = 40, $times = 49, $minTimes=16, $step=10)
     {
         if ($min * $times > $total) {
             return array();
@@ -75,10 +75,11 @@ class RandomData extends Controller
     {
         // TODO: Implement index() method.
         $req = $this->request()->getRequestParam();
-        $r = ['total'=>1005, 'avg'=>45, 'min'=>5, 'max'=>40];
+        $r = ['total'=>10050, 'avg'=>450, 'min'=>50, 'max'=>400];
+        $step = 10;
         foreach ($r as $key => $value) {
             if (array_key_exists($key, $req)) {
-                $r[$key] = (int) $req[$key];
+                $r[$key] = (int) $req[$key] / $step;
             }
         }
         $data = $this->get($r['total'], $r['avg'], $r['min'], $r['max']);
