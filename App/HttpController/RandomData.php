@@ -84,7 +84,11 @@ class RandomData extends Controller
                 $r[$key] = (int) $r[$key] / $step;
             }
         }
-        $data = $this->get($r['total'], $r['avg'], $r['min'], $r['max'], $r['minTimes']);
+        $minTimes = 16;
+        if (array_key_exists('minTimes', $r)) {
+            $minTimes = $r['minTimes'];
+        }
+        $data = $this->get($r['total'], $r['avg'], $r['min'], $r['max'], $minTimes);
         $res = ['errno' => '0', 'errmsg' => 'ok', 'data' => $data];
         $this->response()->write(json_encode($res));
     }
