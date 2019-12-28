@@ -13,7 +13,7 @@ use EasySwoole\Http\AbstractInterface\Controller;
 
 class RandomData extends Controller
 {
-    function get($total = 1005, $avg = 45, $min = 5, $max = 40, $times = 49, $minTimes=16, $step=10)
+    function get($total = 1005, $avg = 45, $min = 5, $max = 40, $minTimes=16, $times = 49, $step=10)
     {
         if ($min * $times > $total) {
             return array();
@@ -84,7 +84,7 @@ class RandomData extends Controller
                 $r[$key] = (int) $r[$key] / $step;
             }
         }
-        $data = $this->get($r['total'], $r['avg'], $r['min'], $r['max']);
+        $data = $this->get($r['total'], $r['avg'], $r['min'], $r['max'], $r['minTimes']);
         $res = ['errno' => '0', 'errmsg' => 'ok', 'data' => $data];
         $this->response()->write(json_encode($res));
     }
