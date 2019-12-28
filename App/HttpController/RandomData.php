@@ -85,8 +85,8 @@ class RandomData extends Controller
             }
         }
         $minTimes = 16;
-        if (array_key_exists('minTimes', $r)) {
-            $minTimes = $r['minTimes'];
+        if (array_key_exists('minTimes', $req)) {
+            $minTimes = $req['minTimes'];
         }
         $data = $this->get($r['total'], $r['avg'], $r['min'], $r['max'], $minTimes);
         $res = ['errno' => '0', 'errmsg' => 'ok', 'data' => $data];
