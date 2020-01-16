@@ -21,7 +21,7 @@ class Router extends AbstractRouter
         $routeCollector->get('/user', '/index.html');
         $routeCollector->get('/am', '/AM/get');
         $routeCollector->get('/am/rdata', '/RandomData');
-        $routeCollector->get('/jet', '/Jetbrains');
+        $routeCollector->get('/am/j', '/Jetbrains');
 
         $routeCollector->get('/', function (Request $request, Response $response) {
             $response->write('this router index');
