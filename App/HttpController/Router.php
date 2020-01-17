@@ -34,6 +34,5 @@ class Router extends AbstractRouter
             $response->write("this is router user ,your id is {$request->getQueryParam('id')}");//获取到路由匹配的id
             return false;//不再往下请求,结束此次响应
         });
-
     }
 }
