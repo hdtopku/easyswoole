@@ -31,7 +31,6 @@ class Jetbrains extends Controller
         } elseif (array_key_exists('k', $req) and $req['k']) {
             $key = $req['k'];
             //redis
-            $validTime = date('Y-m-d H:i:s', strtotime('-8 minutes'));
             $oneMonth = date('Y-m-d H:i:s', strtotime('-1 months'));
             $data = Idea::create()->findOne(
                 ['visit_key' => $key, 'status' => [[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
@@ -51,11 +50,11 @@ class Jetbrains extends Controller
                     return;
                 }
             }
-        } elseif (array_key_exists('g', $req) and $req['g']) {
+        } elseif (array_key_exists('g', $req) and $req['g'] and preg_match("/^-?\d+$/",$req['g'])) {
             $count = $req['g'];
             if ($count) {
                 $count = intval($count);
-                $limit_count = 2;
+                $limit_count = 50;
                 if ($count >= $limit_count) {
                     $count = $limit_count;
                 }
@@ -64,7 +63,7 @@ class Jetbrains extends Controller
                     $count--;
                     $key = $this->getValidCode();
                     Idea::create(['visit_key' => $key])->save();
-                    $link = 'http://a.taojingling.cn/jet?k=' . $key;
+                    $link = 'http://a.taojingling.cn/j?k=' . $key;
                     array_push($data, $link);
                 }
                 $this->response()->write(json_encode(
