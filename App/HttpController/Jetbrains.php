@@ -30,7 +30,6 @@ class Jetbrains extends Controller
             } elseif ($data and $data['status'] == 1) {
                 var_dump('abc');
                 $data['visit_count'] = $data['visit_count'] + 1;
-                $data['update_time'] = date('Y-m-d H:i:s');
                 Idea::create()->update($data, ['id' => $data['id']]);
             }
         } elseif (array_key_exists('k', $req) and $req['k']) {
