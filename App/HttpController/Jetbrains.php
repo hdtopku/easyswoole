@@ -20,7 +20,7 @@ class Jetbrains extends Controller
         $req = $this->request()->getRequestParam();
         if (array_key_exists('q', $req) and $req['q']) {
             $oneMonth = date('Y-m-d H:i:s', strtotime('-1 months'));
-            $data = Idea::create()->get(['visit_key' => $req['q'],
+            $data = Idea::create()->findOne(['visit_key' => $req['q'],
                 'status' => [[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
             if ($data and $this->isValid($data)) {
                 $this->response()->write(json_encode(
