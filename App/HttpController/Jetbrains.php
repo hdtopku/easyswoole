@@ -24,7 +24,7 @@ class Jetbrains extends Controller
                 'status'=>[[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
             if ($this->isValid($data)) {
                 $this->response()->write(json_encode(
-                    ['errno' => '200'],
+                    ['errno' => '0'],
                     JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
                 return;
             }
