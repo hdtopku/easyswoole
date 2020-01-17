@@ -21,12 +21,17 @@ class Jetbrains extends Controller
         if (array_key_exists('q', $req) and $req['q']) {
             $oneMonth = date('Y-m-d H:i:s', strtotime('-1 months'));
             $data = Idea::create()->get(['visit_key' => $req['q'],
-                'status'=>[[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
+                'status' => [[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
             if ($data and $this->isValid($data)) {
                 $this->response()->write(json_encode(
                     ['errno' => '0'],
                     JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
                 return;
+            } elseif ($data and $data['status'] == 1) {
+                var_dump('abc');
+                $data['visit_count'] = $data['visit_count'] + 1;
+                $data['update_time'] = date('Y-m-d H:i:s');
+                Idea::create()->update($data, ['id' => $data['id']]);
             }
         } elseif (array_key_exists('k', $req) and $req['k']) {
             $key = $req['k'];
@@ -53,7 +58,7 @@ class Jetbrains extends Controller
                     return;
                 }
             }
-        } elseif (array_key_exists('g', $req) and $req['g'] and preg_match("/^-?\d+$/",$req['g'])) {
+        } elseif (array_key_exists('g', $req) and $req['g'] and preg_match("/^-?\d+$/", $req['g'])) {
             $count = $req['g'];
             if ($count) {
                 $count = intval($count);
@@ -81,7 +86,8 @@ class Jetbrains extends Controller
 
     }
 
-    function isValid($data) {
+    function isValid($data)
+    {
         $validTime = date('Y-m-d H:i:s', strtotime('-3 minutes'));
         if ($data['status'] == 0 || ($data['status'] == 1 && $data['update_time'] >= $validTime)) {
             return true;
