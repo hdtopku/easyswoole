@@ -41,12 +41,27 @@ class AM extends Controller
                     ->get(['link' => $req['link']]);
             } else if (array_key_exists('status', $req)
                 && ($req['status'] == 1 || $req['status'] == 2)) {
-                $link = Links::create()->get(['status' => 0]);
-                $link->update($req, ['id' => $link['id']]);
-                $data['item'] = Links::create()->get($link['id']);
+                if (array_key_exists('count', $req) and $req['count']) {
+                    $links = Links::create()->limit($req['count'] % 20)->findAll(['status' => 0]);
+                    $ids = [];
+                    foreach ($links as $key => $val) {
+                        array_push($ids, $val['id']);
+                        $val['status'] = 2;
+                    }
+                    if (count($ids) > 0) {
+                        Links::create()->update(['status'=> 2], ['id', $ids, 'IN']);
+                        var_dump('abc');
+                    }
+                    var_dump($links);
+                    return;
+                } else {
+                    $link = Links::create()->get(['status' => 0]);
+                    $link->update($req, ['id' => $link['id']]);
+                    $data['item'] = Links::create()->get($link['id']);
+                }
             }
         }
-        $tenDays = date('Y-m-d H:i:s', strtotime('-10 days'));
+        $tenDays = date('Y-m-d H:i:s', strtotime('-7 days'));
         $where = ['update_time' => [$tenDays, '>=']];
         if (array_key_exists('operator_id', $req)) {
             $where['operator_id'] = $req['operator_id'];
