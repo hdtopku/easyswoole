@@ -23,7 +23,7 @@ class Jetbrains extends Controller
             $data = Idea::create()->findOne(['visit_key' => $req['q'],
                 'status' => [[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
             if ($data and $data['status'] == 0) {
-                $this->response()->write(json_encode(['errno' => 0],
+                $this->response()->write(json_encode(['errno' => '0'],
                     JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
                 return;
             } elseif ($data and $this->isValid($data)) {
