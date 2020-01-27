@@ -22,13 +22,12 @@ class Jetbrains extends Controller
             $oneMonth = date('Y-m-d H:i:s', strtotime('-1 months'));
             $data = Idea::create()->findOne(['visit_key' => $req['q'],
                 'status' => [[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
-            if ($data and $data['status'] == 0) {
-                $this->response()->write(json_encode(['errno' => '0'],
+            if ($data and $this->isValid($data)) {
+                $this->response()->write(json_encode(['errno' => '0', 'update_time' => $data['update_time'], 'count' => $data['visit_count']],
                     JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
                 return;
-            } elseif ($data and $this->isValid($data)) {
-                $res = ['errno' => '500', 'update_time' => $data['update_time'], 'count' => $data['visit_count']];
-                $this->response()->write(json_encode($res,
+            } elseif ($data) {
+                $this->response()->write(json_encode(['errno' => '500', 'update_time' => $data['update_time'], 'count' => $data['visit_count']],
                     JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
                 return;
             }
