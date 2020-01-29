@@ -19,12 +19,16 @@ class AM extends Controller
     {
         $data = ['unUsed' => [], 'using' => [], 'used' => [], 'recycle' => [], 'item' => []];
         $req = $this->request()->getRequestParam();
+        $item = null;
         if (array_key_exists('link', $req)) {
             $req['link'] = trim($req['link']);
-            $data['item'] = [Links::create()->get(['link' => $req['link']])];
+            $item = Links::create()->get(['link' => $req['link']]);
         }
         if (array_key_exists('id', $req)) {
-            $data['item'] = [Links::create()->get($req['id'])];
+            $item = Links::create()->get($req['id']);
+        }
+        if ($item) {
+            $data['item'] = [$item];
         }
         if (array_key_exists('status', $req)
             || array_key_exists('operator_id', $req)
