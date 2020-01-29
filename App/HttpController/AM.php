@@ -87,18 +87,18 @@ class AM extends Controller
             $res = Links::create()->where($where)->where('status', 0, '!=')
                 ->where('id', $item_ids, 'NOT IN')
                 ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                ->limit(1000)->order('update_time', 'DESC')->findAll();
+                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->findAll();
             $unUsed = Links::create()->where('status', 0, '=')
                 ->where('id', $item_ids, 'NOT IN')
                 ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                ->limit(1000)->order('update_time', 'DESC')->findAll();
+                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->findAll();
         } else {
             $res = Links::create()->where($where)->where('status', 0, '!=')
                 ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                ->limit(1000)->order('update_time', 'DESC')->findAll();
+                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->findAll();
             $unUsed = Links::create()->where('status', 0, '=')
                 ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                ->limit(1000)->order('update_time', 'DESC')->findAll();
+                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->findAll();
         }
         if ($unUsed) {
             $res = array_merge($res, $unUsed);
