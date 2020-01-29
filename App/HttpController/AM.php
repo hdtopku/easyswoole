@@ -21,10 +21,10 @@ class AM extends Controller
         $req = $this->request()->getRequestParam();
         if (array_key_exists('link', $req)) {
             $req['link'] = trim($req['link']);
-            $data['item'] = Links::create()->get(['link' => $req['link']]);
+            $data['item'] = [Links::create()->get(['link' => $req['link']])];
         }
         if (array_key_exists('id', $req)) {
-            $data['item'] = Links::create()->get($req['id']);
+            $data['item'] = [Links::create()->get($req['id'])];
         }
         if (array_key_exists('status', $req)
             || array_key_exists('operator_id', $req)
@@ -74,14 +74,28 @@ class AM extends Controller
         foreach ($data['item'] as $key => $val) {
             array_push($item_ids, $val['id']);
         }
-        $res = Links::create()->where($where)->where('status', 0, '!=')
-            ->where('id', $item_ids, 'not in')
-            ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-            ->limit(1000)->order('update_time', 'DESC')->findAll();
-        $unUsed = Links::create()->where('status', 0, '=')
-            ->where('id', $item_ids, 'not in')
-            ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-            ->limit(1000)->order('update_time', 'DESC')->findAll();
+        if ($item_ids) {
+            $where['id'] = [$item_ids, 'NOT IN'];
+        } else {
+
+        }
+        if ($item_ids) {
+            $res = Links::create()->where($where)->where('status', 0, '!=')
+                ->where('id', $item_ids, 'NOT IN')
+                ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
+                ->limit(1000)->order('update_time', 'DESC')->findAll();
+            $unUsed = Links::create()->where('status', 0, '=')
+                ->where('id', $item_ids, 'NOT IN')
+                ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
+                ->limit(1000)->order('update_time', 'DESC')->findAll();
+        } else {
+            $res = Links::create()->where($where)->where('status', 0, '!=')
+                ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
+                ->limit(1000)->order('update_time', 'DESC')->findAll();
+            $unUsed = Links::create()->where('status', 0, '=')
+                ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
+                ->limit(1000)->order('update_time', 'DESC')->findAll();
+        }
         if ($unUsed) {
             $res = array_merge($res, $unUsed);
         }
