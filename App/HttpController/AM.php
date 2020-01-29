@@ -53,8 +53,6 @@ class AM extends Controller
                         $c = Links::create()->update($req, ['id' => $link['id']]);
                         if ($c) {
                             $link = Links::create()->get($link['id']);
-                            $link['short_link'] = substr($link['link'], 46, 4);
-                            $link['isItem'] = true;
                             array_push($item, $link);
                             $count--;
                         }
@@ -72,6 +70,8 @@ class AM extends Controller
         }
         $item_ids = [];
         foreach ($data['item'] as $key => $val) {
+            $val['short_link'] = substr($val['link'], 46, 4);
+            $val['isItem'] = true;
             array_push($item_ids, $val['id']);
         }
         if ($item_ids) {
