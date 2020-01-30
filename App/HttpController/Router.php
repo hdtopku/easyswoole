@@ -22,7 +22,7 @@ class Router extends AbstractRouter
         $routeCollector->get('/am', '/AM/get');
         $routeCollector->get('/am/rdata', '/RandomData');
         $routeCollector->get('/am/j', '/Jetbrains');
-        $routeCollector->addRoute(['GET', 'POST'], '/am/jc', '/Jetbrains/activeCode');
+        $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/am/jc', '/Jetbrains/activeCode');
 
         $routeCollector->get('/', function (Request $request, Response $response) {
             $response->write('this router index');
