@@ -65,10 +65,10 @@ class EasySwooleEvent implements Event
         $response->withHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         $response->withHeader('Access-Control-Allow-Credentials', 'true');
         $response->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-        if ($request->getMethod() === 'OPTIONS') {
-            $response->withStatus(Status::CODE_OK);
-            return false;
-        }
+//        if ($request->getMethod() === 'OPTIONS') {
+//            $response->withStatus(Status::CODE_OK);
+//            return false;
+//        }
         return true;
     }
 
