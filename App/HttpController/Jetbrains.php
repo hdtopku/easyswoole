@@ -141,12 +141,12 @@ class Jetbrains extends Controller
     {
         $req = $this->request()->getRequestParam();
         $data = [];
-        $item = (object)[];
+        $item = [];
         if (array_key_exists('username', $req) and $req['username']) {
-            $item = JetAccount::create()->get(['username' => $req['username']]);
+            $item = JetAccount::create()->findOne(['username' => $req['username']]);
             if (!$item and array_key_exists('password', $req) and $req['password']) {
                 JetAccount::create(['username' => $req['username'], 'password' => $req['password']])->save();
-                $item = JetAccount::create()->get(['username' => $req['username']]);
+                $item = JetAccount::create()->findOne(['username' => $req['username']]);
             } else if ($item and array_key_exists('count', $req)) {
                 $use_count = $item['use_count'];
                 $count = (int)$req['count'];
@@ -158,14 +158,14 @@ class Jetbrains extends Controller
                 if ($item['use_count'] != $use_count) {
                     JetAccount::create()->update(['use_count' => $use_count], ['username' => $item['username']]);
                 }
-                $item = JetAccount::create()->get(['username' => $req['username']]);
+                $item = JetAccount::create()->findOne(['username' => $req['username']]);
             } else if ($item and array_key_exists('status', $req)) {
                 JetAccount::create()->update(['status' => $req['status']], ['username' => $item['username']]);
-                $item = JetAccount::create()->get(['username' => $req['username']]);
+                $item = JetAccount::create()->findOne(['username' => $req['username']]);
             }
         }
         $divideCount = 3;
-        if (array_key_exists('username', $item)) {
+        if ($item and array_key_exists('username', $item)) {
             $accounts = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '<')
                 ->where('username', $item['username'], '!=')
@@ -176,7 +176,7 @@ class Jetbrains extends Controller
                 ->where('username', $item['username'], '!=')
                 ->order('use_count', 'DESC')->order('update_time', 'DESC')
                 ->findAll();
-            $data['item']['isItem'] = true;
+            $item['isItem'] = true;
         } else {
             $accounts = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '<')
@@ -187,7 +187,7 @@ class Jetbrains extends Controller
                 ->order('use_count', 'DESC')->order('update_time', 'DESC')
                 ->findAll();
         }
-        $data['item'] = $item;
+        $data['item'] = (object) $item;
         $data['accounts'] = $accounts or [];
         $data['$accountsMore'] = $accountsMore or [];
         $res = ['errno' => '0', 'data' => $data];
