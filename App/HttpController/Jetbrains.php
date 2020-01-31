@@ -166,7 +166,7 @@ class Jetbrains extends Controller
         }
         $data['item'] = $item;
         $divideCount = 3;
-        if ($data['item']['username']) {
+        if (array_key_exists('username', $data['item'])) {
             $accounts = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '<')
                 ->where('username', $data['item']['username'], '!=')
