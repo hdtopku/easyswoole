@@ -177,6 +177,7 @@ class Jetbrains extends Controller
                 ->where('username', $data['item']['username'], '!=')
                 ->order('use_count', 'DESC')->order('update_time', 'DESC')
                 ->findAll();
+            $data['item']['isItem'] = true;
         } else {
             $accounts = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '<')
