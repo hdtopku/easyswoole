@@ -142,9 +142,9 @@ class Jetbrains extends Controller
         $req = $this->request()->getRequestParam();
         $data = [];
         $item = (object) [];
-        if (array_key_exists('username', $req)) {
+        if (array_key_exists('username', $req) and $req['username']) {
             $item = JetAccount::create()->get(['username' => $req['username']]);
-            if (!$item and array_key_exists('password', $req)) {
+            if (!$item and array_key_exists('password', $req) and $req['password']) {
                 JetAccount::create(['username' => $req['username'], 'password' => $req['password']])->save();
                 $item = JetAccount::create()->get(['username' => $req['username']]);
             } else if ($item and array_key_exists('count', $req)) {
