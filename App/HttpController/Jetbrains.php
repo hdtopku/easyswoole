@@ -141,7 +141,7 @@ class Jetbrains extends Controller
     {
         $req = $this->request()->getRequestParam();
         $data = [];
-        $item = (object) [];
+        $item = (object)[];
         if (array_key_exists('username', $req) and $req['username']) {
             $item = JetAccount::create()->get(['username' => $req['username']]);
             if (!$item and array_key_exists('password', $req) and $req['password']) {
@@ -160,21 +160,34 @@ class Jetbrains extends Controller
                 }
                 $item = JetAccount::create()->get(['username' => $req['username']]);
             } else if ($item and array_key_exists('status', $req)) {
-                JetAccount::create()->update(['status'=> $req['status']], ['username' => $item['username']]);
+                JetAccount::create()->update(['status' => $req['status']], ['username' => $item['username']]);
                 $item = JetAccount::create()->get(['username' => $req['username']]);
             }
         }
         $data['item'] = $item;
         $divideCount = 3;
-        $accounts = JetAccount::create()
-            ->where('status', 0)->where('use_count', $divideCount, '<')
-            ->order('use_count', 'DESC')->order('update_time', 'DESC')
-            ->findAll();
+        if ($data['item']['username']) {
+            $accounts = JetAccount::create()
+                ->where('status', 0)->where('use_count', $divideCount, '<')
+                ->where('username', $data['item']['username'], '!=')
+                ->order('use_count', 'DESC')->order('update_time', 'DESC')
+                ->findAll();
+            $accountsMore = JetAccount::create()
+                ->where('status', 0)->where('use_count', $divideCount, '>=')
+                ->where('username', $data['item']['username'], '!=')
+                ->order('use_count', 'DESC')->order('update_time', 'DESC')
+                ->findAll();
+        } else {
+            $accounts = JetAccount::create()
+                ->where('status', 0)->where('use_count', $divideCount, '<')
+                ->order('use_count', 'DESC')->order('update_time', 'DESC')
+                ->findAll();
+            $accountsMore = JetAccount::create()
+                ->where('status', 0)->where('use_count', $divideCount, '>=')
+                ->order('use_count', 'DESC')->order('update_time', 'DESC')
+                ->findAll();
+        }
         $data['accounts'] = $accounts;
-        $accountsMore = JetAccount::create()
-            ->where('status', 0)->where('use_count', $divideCount, '>=')
-            ->order('use_count', 'DESC')->order('update_time', 'DESC')
-            ->findAll();
         $data['$accountsMore'] = $accountsMore;
         $res = ['errno' => '0', 'data' => $data];
         $this->response()->write(json_encode($res));
