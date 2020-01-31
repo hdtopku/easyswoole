@@ -140,34 +140,43 @@ class Jetbrains extends Controller
     function account()
     {
         $req = $this->request()->getRequestParam();
+        $data = [];
+        $item = (object) [];
         if (array_key_exists('username', $req)) {
-            $data = JetAccount::create()->get(['username' => $req['username']]);
-            if (!$data and array_key_exists('password', $req)) {
+            $item = JetAccount::create()->get(['username' => $req['username']]);
+            if (!$item and array_key_exists('password', $req)) {
                 JetAccount::create(['username' => $req['username'], 'password' => $req['password']])->save();
-                $data = JetAccount::create()->get(['username' => $req['username']]);
-            } else if ($data and array_key_exists('status', $req)) {
-                JetAccount::create()->update(['status' => $req['status']], ['username' => $data['username']]);
-            } else if ($data and array_key_exists('count', $req)) {
-                $use_count = $data['use_count'];
-                $count = int(req['count']);
+                $item = JetAccount::create()->get(['username' => $req['username']]);
+            } else if ($item and array_key_exists('count', $req)) {
+                $use_count = $item['use_count'];
+                $count = (int)$req['count'];
                 if ($req['count'] < 0 and $count > 0) {
                     $use_count = $use_count - 1;
                 } else if ($count > 0) {
                     $use_count = $use_count + 1;
                 }
-                if ($data['use_count'] != $use_count) {
-                    JetAccount::create()->update(['use_count' => $use_count, ['username' => $data['username']]]);
-                    $data['use_count'] = $use_count;
+                if ($item['use_count'] != $use_count) {
+                    JetAccount::create()->update(['use_count' => $use_count], ['username' => $item['username']]);
                 }
+                $item = JetAccount::create()->get(['username' => $req['username']]);
+            } else if ($item and array_key_exists('status', $req)) {
+                JetAccount::create()->update(['status', $req['status']], ['username' => $item['username']]);
+                $item = JetAccount::create()->get(['username' => $req['username']]);
             }
-            $this->response()->write(json_encode($data));
-        } else {
-            $status = 0;
-            if (array_key_exists('status', $req)) {
-                $req['status'] = $status;
-            }
-            $jet_accounts = JetAccount::create()->get(['status' => $status]);
-            $this->response()->write(json_encode($jet_accounts));
         }
+        $data['item'] = $item;
+        $divideCount = 3;
+        $accounts = JetAccount::create()
+            ->where('status', 0)->where('use_count', $divideCount, '<')
+            ->order('use_count', 'DESC')->order('update_time', 'DESC')
+            ->findAll();
+        $data['accounts'] = $accounts;
+        $accountsMore = JetAccount::create()
+            ->where('status', 0)->where('use_count', $divideCount, '>=')
+            ->order('use_count', 'DESC')->order('update_time', 'DESC')
+            ->findAll();
+        $data['$accountsMore'] = $accountsMore;
+        $res = ['errno' => '0', 'data' => $data];
+        $this->response()->write(json_encode($res));
     }
 }
