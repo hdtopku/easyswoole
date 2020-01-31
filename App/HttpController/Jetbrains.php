@@ -176,6 +176,8 @@ class Jetbrains extends Controller
                 ->where('username', $item['username'], '!=')
                 ->order('use_count', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
+            $accountsDel = JetAccount::create()->where('username', $item['username'], '!=')
+                ->where('status', 1)->order('update_time', 'DESC')->findAll();
             $item['isItem'] = true;
         } else {
             $accounts = JetAccount::create()
@@ -186,9 +188,9 @@ class Jetbrains extends Controller
                 ->where('status', 0)->where('use_count', $divideCount, '>=')
                 ->order('use_count', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
+            $accountsDel = JetAccount::create()
+                ->where('status', 1)->order('update_time', 'DESC')->findAll();
         }
-        $accountsDel = JetAccount::create()
-            ->where('status', 1)->order('update_time', 'DESC')->findAll();
         $data['item'] = (object) $item;
         $data['accounts'] = $accounts or [];
         $data['accountsMore'] = $accountsMore or [];
