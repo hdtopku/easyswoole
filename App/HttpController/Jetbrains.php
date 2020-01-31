@@ -150,7 +150,7 @@ class Jetbrains extends Controller
             } else if ($item and array_key_exists('count', $req)) {
                 $use_count = $item['use_count'];
                 $count = (int)$req['count'];
-                if ($req['count'] < 0 and $count > 0) {
+                if ($count < 0 and $count > 0) {
                     $use_count = $use_count - 1;
                 } else if ($count > 0) {
                     $use_count = $use_count + 1;
