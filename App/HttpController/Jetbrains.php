@@ -174,7 +174,7 @@ class Jetbrains extends Controller
             $accountsMore = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '>=')
                 ->where('username', $item['username'], '!=')
-                ->order('use_count', 'DESC')->order('update_time', 'DESC')
+                ->order('use_count', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
             $item['isItem'] = true;
         } else {
@@ -184,12 +184,15 @@ class Jetbrains extends Controller
                 ->findAll();
             $accountsMore = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '>=')
-                ->order('use_count', 'DESC')->order('update_time', 'DESC')
+                ->order('use_count', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
         }
+        $accountsDel = JetAccount::create()
+            ->where('status', 1)->order('update_time', 'DESC')->findAll();
         $data['item'] = (object) $item;
         $data['accounts'] = $accounts or [];
         $data['accountsMore'] = $accountsMore or [];
+        $data['accountsDel'] = $accountsDel or [];
         $res = ['errno' => '0', 'data' => $data];
         $this->response()->write(json_encode($res));
     }
