@@ -164,17 +164,16 @@ class Jetbrains extends Controller
                 $item = JetAccount::create()->get(['username' => $req['username']]);
             }
         }
-        $data['item'] = $item;
         $divideCount = 3;
-        if (array_key_exists('username', $data['item'])) {
+        if (array_key_exists('username', $item)) {
             $accounts = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '<')
-                ->where('username', $data['item']['username'], '!=')
+                ->where('username', $item['username'], '!=')
                 ->order('use_count', 'DESC')->order('update_time', 'DESC')
                 ->findAll();
             $accountsMore = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '>=')
-                ->where('username', $data['item']['username'], '!=')
+                ->where('username', $item['username'], '!=')
                 ->order('use_count', 'DESC')->order('update_time', 'DESC')
                 ->findAll();
             $data['item']['isItem'] = true;
@@ -188,6 +187,7 @@ class Jetbrains extends Controller
                 ->order('use_count', 'DESC')->order('update_time', 'DESC')
                 ->findAll();
         }
+        $data['item'] = $item;
         $data['accounts'] = $accounts or [];
         $data['$accountsMore'] = $accountsMore or [];
         $res = ['errno' => '0', 'data' => $data];
