@@ -189,7 +189,7 @@ class Jetbrains extends Controller
         }
         $data['item'] = (object) $item;
         $data['accounts'] = $accounts or [];
-        $data['$accountsMore'] = $accountsMore or [];
+        $data['accountsMore'] = $accountsMore or [];
         $res = ['errno' => '0', 'data' => $data];
         $this->response()->write(json_encode($res));
     }
