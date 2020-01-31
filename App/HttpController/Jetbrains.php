@@ -10,6 +10,7 @@ namespace App\HttpController;
 
 
 use App\Model\AM\Idea;
+use App\Model\Jet\JetAccount;
 use App\Service\RedisService;
 use EasySwoole\Http\AbstractInterface\Controller;
 
@@ -124,7 +125,8 @@ class Jetbrains extends Controller
         return $invitecode;
     }
 
-    function activeCode() {
+    function activeCode()
+    {
         $req = $this->request()->getRequestParam();
         $redis = new RedisService();
         if (array_key_exists('code', $req)) {
@@ -133,5 +135,39 @@ class Jetbrains extends Controller
         $this->response()->write(json_encode(
                 ['errno' => '0', 'data' => $redis->get('code')], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
         );
+    }
+
+    function account()
+    {
+        $req = $this->request()->getRequestParam();
+        if (array_key_exists('username', $req)) {
+            $data = JetAccount::create()->get(['username' => $req['username']]);
+            if (!$data and array_key_exists('password', $req)) {
+                JetAccount::create(['username' => $req['username'], 'password' => $req['password']])->save();
+                $data = JetAccount::create()->get(['username' => $req['username']]);
+            } else if ($data and array_key_exists('status', $req)) {
+                JetAccount::create()->update(['status' => $req['status']], ['username' => $data['username']]);
+            } else if ($data and array_key_exists('count', $req)) {
+                $use_count = $data['use_count'];
+                $count = int(req['count']);
+                if ($req['count'] < 0 and $count > 0) {
+                    $use_count = $use_count - 1;
+                } else if ($count > 0) {
+                    $use_count = $use_count + 1;
+                }
+                if ($data['use_count'] != $use_count) {
+                    JetAccount::create()->update(['use_count' => $use_count, ['username' => $data['username']]]);
+                    $data['use_count'] = $use_count;
+                }
+            }
+            $this->response()->write(json_encode($data));
+        } else {
+            $status = 0;
+            if (array_key_exists('status', $req)) {
+                $req['status'] = $status;
+            }
+            $jet_accounts = JetAccount::create()->get(['status' => $status]);
+            $this->response()->write(json_encode($jet_accounts));
+        }
     }
 }
