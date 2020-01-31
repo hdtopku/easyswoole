@@ -160,7 +160,7 @@ class Jetbrains extends Controller
                 }
                 $item = JetAccount::create()->get(['username' => $req['username']]);
             } else if ($item and array_key_exists('status', $req)) {
-                JetAccount::create()->update(['status', $req['status']], ['username' => $item['username']]);
+                JetAccount::create()->update(['status'=> $req['status']], ['username' => $item['username']]);
                 $item = JetAccount::create()->get(['username' => $req['username']]);
             }
         }
