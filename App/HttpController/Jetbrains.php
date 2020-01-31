@@ -188,8 +188,8 @@ class Jetbrains extends Controller
                 ->order('use_count', 'DESC')->order('update_time', 'DESC')
                 ->findAll();
         }
-        $data['accounts'] = $accounts;
-        $data['$accountsMore'] = $accountsMore;
+        $data['accounts'] = $accounts or [];
+        $data['$accountsMore'] = $accountsMore or [];
         $res = ['errno' => '0', 'data' => $data];
         $this->response()->write(json_encode($res));
     }
