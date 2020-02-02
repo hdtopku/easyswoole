@@ -169,7 +169,7 @@ class Jetbrains extends Controller
             $accounts = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '<')
                 ->where('username', $item['username'], '!=')
-                ->order('use_count', 'DESC')->order('update_time', 'DESC')
+                ->order('use_count', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
             $accountsMore = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '>=')
@@ -182,7 +182,7 @@ class Jetbrains extends Controller
         } else {
             $accounts = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '<')
-                ->order('use_count', 'DESC')->order('update_time', 'DESC')
+                ->order('use_count', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
             $accountsMore = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '>=')
