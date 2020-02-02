@@ -94,18 +94,18 @@ user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (
         $opts = array('http' =>
             array(
                 'method' => $method,
-                'header' => 'Content-type: application/x-www-form-urlencoded\r\n'.
-                'authority:www.jetbrains.com\r\n'.
-                'path:/shop/eform/students\r\n'.
-                'scheme:https\r\n'.
-                'accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3\r\n'.
-                'accept-encoding:gzip, deflate, br\r\n'.
-                'Accept-Language:zh-CN,zh;q=0.9,en;q=0.8\r\n'.
-                'sec-fetch-mode:navigate\r\n'.
-                'sec-fetch-site:same-origin\r\n'.
-                'sec-fetch-user:?1\r\n'.
-                'upgrade-insecure-requests:1\r\n'.
-                'user-agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36',
+                'header' => 'Content-type: application/x-www-form-urlencoded
+authority:www.jetbrains.com
+path:/shop/eform/students
+scheme:https
+accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3
+accept-encoding:gzip, deflate, br
+Accept-Language:zh-CN,zh;q=0.9,en;q=0.8
+sec-fetch-mode:navigate
+sec-fetch-site:same-origin
+sec-fetch-user:?1
+upgrade-insecure-requests:1
+user-agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
             )
         );
         if ($data) {
@@ -116,8 +116,6 @@ user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (
         }
         $context = stream_context_create($opts);
         $headers = get_headers($url, null, $context);
-//        file_get_contents($url, false, $context);
-//        $headers = $this->parseHeaders($http_response_header);
         $headers = $this->parseHeaders($headers);
         return $headers;
     }
