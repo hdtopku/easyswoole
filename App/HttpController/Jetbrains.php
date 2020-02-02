@@ -86,7 +86,7 @@ class Jetbrains extends Controller
 
     function isValid($data)
     {
-        $validTime = date('Y-m-d H:i:s', strtotime('-5 minutes'));
+        $validTime = date('Y-m-d H:i:s', strtotime('-8 minutes'));
         if ($data['status'] == 0 || ($data['status'] == 1 && $data['update_time'] >= $validTime)) {
             return true;
         }
