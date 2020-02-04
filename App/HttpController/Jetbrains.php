@@ -177,7 +177,11 @@ class Jetbrains extends Controller
                 ->order('use_count', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
             $accountsDel = JetAccount::create()
-                ->where('status', [-1, 1], 'IN')
+                ->where('status', 1)
+                ->where('username', $item['username'], '!=')
+                ->order('status', 'ASC')->order('update_time', 'DESC')
+                ->findAll();
+            $accountsEffect = JetAccount::create()->where('status', -1)
                 ->where('username', $item['username'], '!=')
                 ->order('status', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
@@ -191,7 +195,10 @@ class Jetbrains extends Controller
                 ->where('status', 0)->where('use_count', $divideCount, '>=')
                 ->order('use_count', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
-            $accountsDel = JetAccount::create()->where('status', [-1, 1], 'IN')
+            $accountsDel = JetAccount::create()->where('status', 1)
+                ->order('status', 'ASC')->order('update_time', 'DESC')
+                ->findAll();
+            $accountsEffect = JetAccount::create()->where('status', -1)
                 ->order('status', 'ASC')->order('update_time', 'DESC')
                 ->findAll();
         }
@@ -199,6 +206,7 @@ class Jetbrains extends Controller
         $data['accounts'] = $accounts or [];
         $data['accountsMore'] = $accountsMore or [];
         $data['accountsDel'] = $accountsDel or [];
+        $data['accountsEffect'] = $accountsEffect or [];
         $res = ['errno' => '0', 'data' => $data];
         $this->response()->write(json_encode($res));
     }
