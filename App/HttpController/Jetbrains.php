@@ -164,7 +164,7 @@ class Jetbrains extends Controller
                 $item = JetAccount::create()->findOne(['username' => $req['username']]);
             }
         }
-        $divideCount = 3;
+        $divideCount = 2;
         if ($item and array_key_exists('username', $item)) {
             $accounts = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '<')
