@@ -27,19 +27,22 @@ class JetService extends WebService
     {
         $need_reg_mails = $this->get_need_reg_mails();
         foreach ($need_reg_mails as $key => $val) {
-            try {
-                $this->reg($val . '@pku.edu.cn');
-                sleep(rand(3, 8));
-                continue;
-            } catch (\Exception $e) {
-                $account = substr($val, 0, -1);
-                JetAccount::create()->update(['status' => -2], ['username' => $account]);
-                sleep(rand(2, 5));
+            if (strlen($val) > 3) {
+                try {
+                    $this->reg($val . '@pku.edu.cn');
+                    sleep(rand(3, 8));
+                    continue;
+                } catch (\Exception $e) {
+                    $account = substr($val, 0, -1);
+                    JetAccount::create()->update(['status' => 1], ['username' => $account]);
+                    sleep(rand(2, 5));
+                }
             }
         }
     }
 
-    function get_need_reg_mails() {
+    function get_need_reg_mails()
+    {
         $words = $this->get_mails();
         $need_reg_mails = [];
         foreach ($words as $key => $val) {
