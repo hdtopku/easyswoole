@@ -9,10 +9,54 @@
 namespace App\Service\Jet;
 
 
+use App\Model\Jet\JetAccount;
+use App\Service\RedisService;
 use EasySwoole\Http\WebService;
 
 class JetService extends WebService
 {
+
+    function get_mails()
+    {
+        $redis = new RedisService();
+        $words = $redis->get('words');
+        return json_decode($words);
+    }
+
+    function batch_reg()
+    {
+        $need_reg_mails = $this->get_need_reg_mails();
+        foreach ($need_reg_mails as $key => $val) {
+            try {
+                $this->reg($val . '@pku.edu.cn');
+                sleep(rand(3, 8));
+                continue;
+            } catch (\Exception $e) {
+                $account = substr($val, 0, -1);
+                JetAccount::create()->update(['status' => -2], ['username' => $account]);
+                sleep(rand(2, 5));
+            }
+        }
+    }
+
+    function get_need_reg_mails() {
+        $words = $this->get_mails();
+        $need_reg_mails = [];
+        foreach ($words as $key => $val) {
+            $account = substr($val, 0, -1);
+            $jet = JetAccount::create()->get(['username' => $account]);
+            if (!$jet) {
+                $jet = JetAccount::create(
+                    ['username' => $account, 'password' => 'Crack168', 'status' => -1]
+                )->save();
+                if ($jet) {
+                    array_push($need_reg_mails, $val);
+                }
+            }
+        }
+        return $need_reg_mails;
+    }
+
     function pre_reg()
     {
         $url = 'https://www.jetbrains.com/shop/eform/students';
@@ -20,13 +64,16 @@ class JetService extends WebService
         return $headers;
     }
 
-    function reg()
+    function reg($email)
     {
+        if (!strpos($email, '@pku.edu.cn')) {
+            return;
+        }
         $pre_result = $this->pre_reg();
         $req = [
-            'email' => 'vaggrav5440@pku.edu.cn',
-            'name.firstName' => 'pdi',
-            'name.lastName' => 'ps',
+            'email' => $email,
+            'name.firstName' => 'jet',
+            'name.lastName' => 'actived',
             'JSESSIONID-SHOP' => $pre_result['Set-Cookie']['JSESSIONID-SHOP'],
             '_st-SHOP' => $pre_result['Set-Cookie']['_st-SHOP']
         ];
@@ -48,10 +95,10 @@ class JetService extends WebService
 //        $st = 'v6ANu-rv9S7wkV6O-bP7GK9EmJ9WCt6pA5ith-JZR6XvYQNXtw2GKwiSsmVFlZYl';
 //        $cook = 'JSESSIONID-SHOP=0F542121E5F111486F12E933E7A5F740; _st-SHOP=v6ANu-rv9S7wkV6O-bP7GK9EmJ9WCt6pA5ith-JZR6XvYQNXtw2GKwiSsmVFlZYl';
         $st = substr($pre_result['Set-Cookie']['_st-SHOP'], 9);
-        $cook = $pre_result['Set-Cookie']['JSESSIONID-SHOP'].'; '.$pre_result['Set-Cookie']['_st-SHOP'];
+        $cook = $pre_result['Set-Cookie']['JSESSIONID-SHOP'] . '; ' . $pre_result['Set-Cookie']['_st-SHOP'];
 
 
-        $url = 'https://www.jetbrains.com/shop/eform/students?_st='.$st;
+        $url = 'https://www.jetbrains.com/shop/eform/students?_st=' . $st;
         $header = 'authority: www.jetbrains.com
 method: POST
 path: /shop/eform/students?_st=%s
@@ -94,18 +141,18 @@ user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (
         $opts = array('http' =>
             array(
                 'method' => $method,
-                'header' => 'Content-type: application/x-www-form-urlencoded
-authority:www.jetbrains.com
-path:/shop/eform/students
-scheme:https
-accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3
-accept-encoding:gzip, deflate, br
-Accept-Language:zh-CN,zh;q=0.9,en;q=0.8
-sec-fetch-mode:navigate
-sec-fetch-site:same-origin
-sec-fetch-user:?1
-upgrade-insecure-requests:1
-user-agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
+                'header' => 'Content-type: application/x-www-form-urlencoded\r\n' .
+                    'authority:www.jetbrains.com\r\n' .
+                    'path:/shop/eform/students\r\n' .
+                    'scheme:https\r\n' .
+                    'accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3\r\n' .
+                    'accept-encoding:gzip, deflate, br\r\n' .
+                    'Accept-Language:zh-CN,zh;q=0.9,en;q=0.8\r\n' .
+                    'sec-fetch-mode:navigate\r\n' .
+                    'sec-fetch-site:same-origin\r\n' .
+                    'sec-fetch-user:?1\r\n' .
+                    'upgrade-insecure-requests:1\r\n' .
+                    'user-agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36',
             )
         );
         if ($data) {
@@ -116,6 +163,8 @@ user-agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (K
         }
         $context = stream_context_create($opts);
         $headers = get_headers($url, null, $context);
+//        file_get_contents($url, false, $context);
+//        $headers = $this->parseHeaders($http_response_header);
         $headers = $this->parseHeaders($headers);
         return $headers;
     }
