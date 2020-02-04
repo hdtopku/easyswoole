@@ -21,7 +21,7 @@ class Jet extends Controller
     }
 
     function batch() {
-        go(function (){
+        go(function () {
             $jet = new JetService();
             $jet->batch_reg();
         });

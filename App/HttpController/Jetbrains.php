@@ -163,6 +163,20 @@ class Jetbrains extends Controller
                 JetAccount::create()->update(['status' => $req['status']], ['username' => $item['username']]);
                 $item = JetAccount::create()->findOne(['username' => $req['username']]);
             }
+        } elseif (array_key_exists('use_count', $req) and array_key_exists('batch_count', $req)) {
+            $batch_count = intval($req['batch_count']);
+            if ($batch_count > 0) {
+                $jets = JetAccount::create()->where(
+                    ['use_count' => $req['use_count'], 'status' => 0])->limit($batch_count)->findAll();
+                foreach ($jets as $key => $val) {
+                    $is_updated = JetAccount::create()->update(['use_count' => $val['use_count'] + 1],
+                        ['username' => $val['username'], 'use_count' => $val['use_count']]);
+                    if ($is_updated) {
+                        $jets[$key]['use_count'] = $val['use_count'] + 1;
+                    }
+                }
+                $data['items'] = $jets;
+            }
         }
         $divideCount = 2;
         if ($item and array_key_exists('username', $item)) {

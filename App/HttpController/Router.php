@@ -28,10 +28,12 @@ class Router extends AbstractRouter
         $routeCollector->get('/am/jt', '/Jet');
         $routeCollector->get('/am/jb', '/Jet/batch');
 
+        $routeCollector->get('/test', '/Test');
+
         $routeCollector->get('/', function (Request $request, Response $response) {
             $response->write('this router index');
         });
-        $routeCollector->get('/test', function (Request $request, Response $response) {
+        $routeCollector->get('/testa', function (Request $request, Response $response) {
             $response->write('this router test');
             return '/a';//重新定位到/a方法
         });
