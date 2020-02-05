@@ -175,7 +175,7 @@ class Jetbrains extends Controller
                         $jets[$key]['use_count'] = $val['use_count'] + 1;
                     }
                 }
-                $data['items'] = $jets;
+                $data['accountsCopy'] = $jets;
             }
         }
         $divideCount = 2;
