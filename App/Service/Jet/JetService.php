@@ -30,12 +30,12 @@ class JetService extends WebService
             if (strlen($val) > 3) {
                 try {
                     $this->reg($val . '@pku.edu.cn');
-                    sleep(rand(3, 8));
+                    sleep(rand(8, 16));
                     continue;
                 } catch (\Exception $e) {
                     $account = substr($val, 0, -1);
                     JetAccount::create()->update(['status' => 1], ['username' => $account]);
-                    sleep(rand(2, 5));
+                    sleep(rand(2, 6));
                 }
             }
         }
