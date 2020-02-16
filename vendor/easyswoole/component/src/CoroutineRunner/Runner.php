@@ -13,11 +13,18 @@ class Runner
     protected $taskChannel;
     protected $isRunning = false;
     protected $runningNum = 0;
+    protected $onException;
 
     function __construct($concurrency = 64,$taskChannelSize = 1024)
     {
         $this->concurrency = $concurrency;
         $this->taskChannel = new Channel($taskChannelSize);
+    }
+
+    function setOnException(callable $call)
+    {
+        $this->onException = $call;
+        return $this;
     }
 
     function status()
@@ -49,14 +56,20 @@ class Runner
                     Coroutine::create(function ()use($task){
                         $this->runningNum++;
                         $ret = null;
+                        $task->setStartTime(microtime(true));
                         try{
                             $ret = call_user_func($task->getCall());
-                            if($ret !== null && is_callable($task->getOnSuccess())){
-                                call_user_func($task->getOnSuccess(),$ret);
+                            $task->setResult($ret);
+                            if($ret !== false && is_callable($task->getOnSuccess())){
+                                call_user_func($task->getOnSuccess(),$task);
+                            }else if(is_callable($task->getOnFail())){
+                                call_user_func($task->getOnFail(),$task);
                             }
                         }catch (\Throwable $throwable){
-                            if(is_callable($task->getOnFail())){
-                                call_user_func($task->getOnFail(),$ret);
+                            if(is_callable($this->onException)){
+                                call_user_func($this->onException,$throwable,$task);
+                            }else{
+                                throw $throwable;
                             }
                         }finally{
                             $this->runningNum--;

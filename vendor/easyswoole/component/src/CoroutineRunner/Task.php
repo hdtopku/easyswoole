@@ -13,6 +13,10 @@ class Task
     protected $onSuccess;
     /** @var callable */
     protected $onFail;
+    /** @var float */
+    protected $startTime;
+
+    protected $result;
 
     function __construct(callable $call)
     {
@@ -81,5 +85,37 @@ class Task
     public function setOnFail(callable $onFail): void
     {
         $this->onFail = $onFail;
+    }
+
+    /**
+     * @return float
+     */
+    public function getStartTime(): float
+    {
+        return $this->startTime;
+    }
+
+    /**
+     * @param float $startTime
+     */
+    public function setStartTime(float $startTime): void
+    {
+        $this->startTime = $startTime;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getResult()
+    {
+        return $this->result;
+    }
+
+    /**
+     * @param mixed $result
+     */
+    public function setResult($result): void
+    {
+        $this->result = $result;
     }
 }

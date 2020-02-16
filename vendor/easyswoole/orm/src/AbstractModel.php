@@ -4,7 +4,11 @@
 namespace EasySwoole\ORM;
 
 use ArrayAccess;
+use EasySwoole\Mysqli\Client;
 use EasySwoole\Mysqli\QueryBuilder;
+use EasySwoole\ORM\Db\ClientInterface;
+use EasySwoole\ORM\Db\Cursor;
+use EasySwoole\ORM\Db\CursorInterface;
 use EasySwoole\ORM\Db\Result;
 use EasySwoole\ORM\Exception\Exception;
 use EasySwoole\ORM\Utility\PreProcess;
@@ -19,7 +23,7 @@ use JsonSerializable;
  */
 abstract class AbstractModel implements ArrayAccess, JsonSerializable
 {
-
+    /** @var Result */
     private $lastQueryResult;
     private $lastQuery;
     /* 快速支持连贯操作 */
@@ -49,7 +53,7 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
      * 当前的数据
      * @var array
      */
-    private $data;
+    private $data = [];
     /**
      * 附加数据
      * @var array
@@ -65,6 +69,10 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
     private $onQuery;
     /** @var string 临时表名 */
     private $tempTableName = null;
+    /**
+     * @var ClientInterface
+     */
+    private $client;
 
     /** @var bool|string 是否开启时间戳 */
     protected  $autoTimeStamp = false;
@@ -72,6 +80,10 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
     protected  $createTime = 'create_time';
     /** @var bool|string 更新时间字段名 false不设置 */
     protected  $updateTime = 'update_time';
+    /** @var array 预查询 */
+    private $with;
+    /** @var bool 是否为预查询 */
+    private $preHandleWith = false;
 
     /**
      * AbstractModel constructor.
@@ -82,6 +94,13 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
     {
         $this->data($data);
     }
+
+    public function setExecClient(?ClientInterface $client)
+    {
+        $this->client = $client;
+        return $this;
+    }
+
 
     /**
      * @param bool $isCache
@@ -115,6 +134,21 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
         $this->onQuery = $call;
         return $this;
     }
+
+    /**
+     * 调用事件
+     * @param $eventName
+     * @param array $param
+     * @return bool|mixed
+     */
+    protected function callEvent($eventName, ...$param)
+    {
+        if(method_exists(static::class, $eventName)){
+            return call_user_func([static::class, $eventName], $this, ...$param);
+        }
+        return true;
+    }
+
     /*  ==============    快速支持连贯操作    ==================   */
     /**
      * @param mixed ...$args
@@ -195,6 +229,15 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
         return $this;
     }
 
+    public function with($with){
+        if (is_string($with)){
+            $this->with = explode(',', $with);
+        } else if (is_array($with)){
+            $this->with = $with;
+        }
+        return $this;
+    }
+
     /**
      * 获取表名，如果有设置临时表名则返回临时表名
      * @throws
@@ -268,7 +311,7 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
      */
     public function count($field = null)
     {
-        return $this->queryPolymerization('count', $field);
+        return (int)$this->queryPolymerization('count', $field);
     }
 
     /**
@@ -373,11 +416,11 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
     /**
      * @param null $where
      * @param bool $allow 是否允许没有主键删除
-     * @return int|null
+     * @return int|bool
      * @throws Exception
      * @throws \Throwable
      */
-    public function destroy($where = null, $allow = false): ?int
+    public function destroy($where = null, $allow = false)
     {
         $builder = new QueryBuilder();
         $primaryKey = $this->schemaInfo()->getPkFiledName();
@@ -400,7 +443,22 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
         PreProcess::mappingWhere($builder, $where, $this);
         $this->preHandleQueryBuilder($builder);
         $builder->delete($this->getTableName(), $this->limit);
+
+        // beforeDelete事件
+        $beforeRes = $this->callEvent('onBeforeDelete');
+        if ($beforeRes === false){
+            $this->callEvent('onAfterDelete', false);
+            return false;
+        }
+
         $this->query($builder);
+        //  是否出错
+        if ($this->lastQueryResult()->getResult() === false) {
+            $this->callEvent('onAfterDelete', false);
+            return false;
+        }
+
+        $this->callEvent('onAfterDelete', $this->lastQueryResult()->getAffectedRows());
         return $this->lastQueryResult()->getAffectedRows();
     }
 
@@ -424,11 +482,20 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
         $rawArray = $this->preHandleTimeStamp($rawArray, 'insert');
         $builder->insert($this->getTableName(), $rawArray);
         $this->preHandleQueryBuilder($builder);
-        $this->query($builder);
-        if ($this->lastQueryResult()->getResult() === false) {
+        // beforeInsert事件
+        $beforeRes = $this->callEvent('onBeforeInsert');
+        if ($beforeRes === false){
+            $this->callEvent('onAfterInsert', false);
             return false;
         }
 
+        $this->query($builder);
+        if ($this->lastQueryResult()->getResult() === false) {
+            $this->callEvent('onAfterInsert', false);
+            return false;
+        }
+
+        $this->callEvent('onAfterInsert', true);
         if ($this->lastQueryResult()->getLastInsertId()) {
             $this->data[$primaryKey] = $this->lastQueryResult()->getLastInsertId();
             $this->originData = $this->data;
@@ -440,43 +507,59 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
     /**
      * @param $data
      * @param bool $replace
+     * @param bool $transaction 是否开启事务
      * @return array
      * @throws Exception
      * @throws \EasySwoole\Mysqli\Exception\Exception
      * @throws \Throwable
      */
-    public function saveAll($data, $replace = true)
+    public function saveAll($data, $replace = true, $transaction = true)
     {
         $pk = $this->schemaInfo()->getPkFiledName();
         if (empty($pk)) {
             throw new Exception('saveAll() needs primaryKey for model ' . static::class);
         }
 
-        // 开启事务
-        DbManager::getInstance()->startTransaction();
-        $result = [];
+        if ($this->tempConnectionName) {
+            $connectionName = $this->tempConnectionName;
+        } else {
+            $connectionName = $this->connectionName;
+        }
 
+        // 开启事务
+        if ($transaction){
+            DbManager::getInstance()->startTransaction($connectionName);
+        }
+
+        $result = [];
         try{
             foreach ($data as $key => $row){
                 // 如果有设置更新
                 if ($replace && isset($row[$pk])){
-                    $model = static::create()->get($row[$pk]);
+                    $model = static::create()->connection($connectionName)->get($row[$pk]);
                     unset($row[$pk]);
                     $model->update($row);
                     $result[$key] = $model;
                 }else{
-                    $model = static::create($row);
+                    $model = static::create($row)->connection($connectionName);
                     $res = $model->save();
                     $result[$key] = $model;
                 }
             }
-            DbManager::getInstance()->commit();
+            if($transaction){
+                DbManager::getInstance()->commit($connectionName);
+            }
             return $result;
         } catch (\EasySwoole\Mysqli\Exception\Exception $e) {
-            DbManager::getInstance()->rollback();
+
+            if($transaction) {
+                DbManager::getInstance()->rollback($connectionName);
+            }
             throw $e;
         } catch (\Throwable $e) {
-            DbManager::getInstance()->rollback();
+            if($transaction) {
+                DbManager::getInstance()->rollback($connectionName);
+            }
             throw $e;
         }
 
@@ -493,9 +576,8 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
      */
     public function get($where = null, bool $returnAsArray = false)
     {
-        $modelInstance = new static;
         $builder = new QueryBuilder;
-        $builder = PreProcess::mappingWhere($builder, $where, $modelInstance);
+        $builder = PreProcess::mappingWhere($builder, $where, $this);
         $this->preHandleQueryBuilder($builder);
         $builder->getOne($this->parseTableName(), $this->fields);
         $res = $this->query($builder);
@@ -506,12 +588,25 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
             }
             return null;
         }
+        
+        if ($res instanceof CursorInterface){
+            $res->setModelName(static::class);
+            $res->setReturnAsArray($returnAsArray);
+            return $res;
+        }
+        
         if ($returnAsArray){
             return $res[0];
         }
-        $modelInstance->data($res[0], false);
-        $modelInstance->lastQuery = $this->lastQuery();
-        return $modelInstance;
+        $model = new static();
+
+        $model->data($res[0], false);
+        $model->lastQuery = $model->lastQuery();
+        // 预查询
+        if (!empty($model->with)){
+            $model->preHandleWith($model);
+        }
+        return $model;
     }
 
 
@@ -519,11 +614,11 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
      * 批量查询
      * @param null $where
      * @param bool $returnAsArray
-     * @return array|bool
+     * @return array|bool|Cursor
      * @throws Exception
      * @throws \Throwable
      */
-    public function all($where = null, bool $returnAsArray = false): array
+    public function all($where = null, bool $returnAsArray = false)
     {
         $builder = new QueryBuilder;
         $builder = PreProcess::mappingWhere($builder, $where, $this);
@@ -534,13 +629,21 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
         if ($results === false){
             return false;
         }
+        if ($results instanceof CursorInterface){
+            $results->setModelName(static::class);
+            $results->setReturnAsArray($returnAsArray);
+            return $results;
+        }
         if (is_array($results)) {
             foreach ($results as $result) {
                 if ($returnAsArray) {
                     $resultSet[] = $result;
                 } else {
-                    $resultSet[] = (new static)->data($result, false);
+                    $resultSet[] = (new static)->connection($this->connectionName)->data($result, false);
                 }
+            }
+            if (!$returnAsArray && !empty($this->with)){
+                $resultSet = $this->preHandleWith($resultSet);
             }
         }
         return $resultSet;
@@ -549,11 +652,11 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
     /**
      * 批量查询 不映射对象  返回数组
      * @param null $where
-     * @return array
+     * @return array|bool|Cursor
      * @throws Exception
      * @throws \Throwable
      */
-    public function select($where = null):array
+    public function select($where = null)
     {
         return $this->all($where, true);
     }
@@ -582,6 +685,69 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
     }
 
     /**
+     * @param string $column
+     * @return array|null
+     * @throws Exception
+     * @throws \EasySwoole\Mysqli\Exception\Exception
+     * @throws \Throwable
+     */
+    public function column(?string $column = null): ?array
+    {
+        if (!is_null($column)) {
+            $this->fields = [$column];
+        }
+        $this->all();
+
+        return $this->lastQueryResult->getResultColumn($column);
+    }
+
+    /**
+     * @param string $column
+     * @return mixed
+     * @throws Exception
+     * @throws \EasySwoole\Mysqli\Exception\Exception
+     * @throws \Throwable
+     */
+    public function scalar(?string $column = null)
+    {
+        if (!is_null($column)) {
+            $this->fields = [$column];
+        }
+        $this->limit = 1;
+        $this->all();
+
+        return $this->lastQueryResult->getResultScalar($column);
+    }
+
+    /**
+     * @param string $column
+     * @return array|null
+     * @throws Exception
+     * @throws \EasySwoole\Mysqli\Exception\Exception
+     * @throws \Throwable
+     */
+    public function indexBy(string $column): ?array
+    {
+        $this->all();
+
+        return $this->lastQueryResult->getResultIndexBy($column);
+    }
+
+    /**
+     * 直接返回某一行的某一列
+     * @param $column
+     * @return mixed|null
+     * @throws Exception
+     * @throws \EasySwoole\Mysqli\Exception\Exception
+     * @throws \Throwable
+     */
+    public function val($column)
+    {
+        $data = $this->findOne();
+        return isset($data[$column]) ? $data[$column] : null;
+    }
+
+    /**
      * @param array $data
      * @return AbstractModel|$this
      * @throws Exception
@@ -589,6 +755,17 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
     public static function create(array $data = []): AbstractModel
     {
         return new static($data);
+    }
+
+    /**
+     * @param ClientInterface|Client $client
+     * @param array $data
+     * @return AbstractModel|$this
+     * @throws Exception
+     */
+    public static function invoke(ClientInterface $client,array $data = []): AbstractModel
+    {
+        return (static::create($data))->setExecClient($client);
     }
 
 
@@ -604,13 +781,31 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
      */
     public function update(array $data = [], $where = null, $allow = false)
     {
-        if (empty($data)) {
-            // $data = $this->toArray();
-            $data = array_diff_assoc($this->data, $this->originData);
-            if (empty($data)) {
-                return true;
+        if (!empty($data)) {
+            foreach ($data as $columnKey => $columnValue){
+                $this->setAttr($columnKey, $columnValue);
             }
         }
+
+        $attachData = [];
+        // 遍历属性，把inc 和dec 的属性先处理
+        foreach ($this->data as $tem_key => $tem_data){
+            if (is_array($tem_data)){
+                if (isset($tem_data["[I]"])){
+                    $attachData[$tem_key] = $tem_data;
+                    unset($this->data[$tem_key]);
+                }
+            }
+        }
+
+        $data = array_diff_assoc($this->data, $this->originData);
+        $data = array_merge($data, $attachData);
+
+        if (empty($data)){
+            $this->originData = $this->data;
+            return true;
+        }
+
         $builder = new QueryBuilder();
         if ($where) {
             PreProcess::mappingWhere($builder, $where, $this);
@@ -629,12 +824,20 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
         // 合并时间戳字段
         $data = $this->preHandleTimeStamp($data, 'update');
         $builder->update($this->getTableName(), $data);
+
+        // beforeUpdate事件
+        $beforeRes = $this->callEvent('onBeforeUpdate');
+        if ($beforeRes === false){
+            $this->callEvent('onAfterUpdate', false);
+            return false;
+        }
+
         $results = $this->query($builder);
         if ($results){
-            foreach ($data as $columnKey => $columnValue){
-                $this->setAttr($columnKey, $columnValue);
-            }
             $this->originData = $this->data;
+            $this->callEvent('onAfterUpdate', true);
+        }else{
+            $this->callEvent('onAfterUpdate', false);
         }
 
         return $results ? true : false;
@@ -685,7 +888,11 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
     {
         $return = [];
         foreach ($this->data as $key => $data){
-            $return[$key] = $this->getAttr($key);
+            if (method_exists($this, $key)){
+                $return[$key] = $this->data[$key];
+            }else{
+                $return[$key] = $this->getAttr($key);
+            }
         }
         foreach ($this->_joinData as $key => $data)
         {
@@ -787,6 +994,10 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
      */
     protected function hasOne(string $class, callable $where = null, $pk = null, $joinPk = null, $joinType = '')
     {
+        if ($this->preHandleWith === true){
+            return [$class, $where, $pk, $joinPk, $joinType, 'hasOne'];
+        }
+
         $fileName = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
         if (isset($this->_joinData[$fileName])) {
             return $this->_joinData[$fileName];
@@ -873,6 +1084,10 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
      */
     protected function hasMany(string $class, callable $where = null, $pk = null, $joinPk = null, $joinType = '')
     {
+        if ($this->preHandleWith === true){
+            return [$class, $where, $pk, $joinPk, $joinType, 'hasMany'];
+        }
+
         $fileName = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
         if (isset($this->_joinData[$fileName])) {
             return $this->_joinData[$fileName];
@@ -982,7 +1197,11 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
         }
         try {
             $ret = null;
-            $ret = DbManager::getInstance()->query($builder, $raw, $connectionName);
+            if($this->client){
+                $ret = DbManager::getInstance()->query($builder, $raw, $this->client);
+            }else{
+                $ret = DbManager::getInstance()->query($builder, $raw, $connectionName);
+            }
             $builder->reset();
             $this->lastQueryResult = $ret;
             return $ret->getResult();
@@ -1051,7 +1270,20 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
         if ($field === null){
             $field = $this->schemaInfo()->getPkFiledName();
         }
-        $fields = "$type(`{$field}`)";
+        // 判断字段中是否带了表名，是否有`
+        if (strstr($field, '`') == false){
+            // 有表名
+            if (strstr($field, '.') !== false){
+                $temArray = explode(".", $field);
+                $field = "`{$temArray[0]}`.`{$temArray[1]}`";
+            }else{
+                if(!is_numeric($field)){
+                    $field = "`{$field}`";
+                }
+            }
+        }
+
+        $fields = "$type({$field})";
         $this->fields = $fields;
         $this->limit = 1;
         $res = $this->all(null, true);
@@ -1119,5 +1351,68 @@ abstract class AbstractModel implements ArrayAccess, JsonSerializable
                 return date($type, $timestamp);
                 break;
         }
+    }
+
+    // ================ 关联预查询  ======================
+    private function preHandleWith($data)
+    {
+        // $data 只有一条 直接foreach调用 $data->$with();
+        if ($data instanceof AbstractModel){// get查询使用
+            foreach ($this->with as $with){
+                $data->$with();
+            }
+            return $data;
+        }else if (is_array($data) && !empty($data)){// all查询使用
+            // $data 是多条，需要先提取主键数组，select 副表 where joinPk in (pk arrays);
+            // foreach 判断主键，设置值
+            foreach ($this->with as $with){
+                $data[0]->preHandleWith = true;
+                list($class, $where, $pk, $joinPk, $joinType, $withType) = $data[0]->$with();
+                if ($pk !== null && $joinPk !== null){
+                    $pks = array_map(function ($v) use ($pk){
+                        return $v->$pk;
+                    }, $data);
+                    /** @var AbstractModel $insClass */
+                    $insClass = new $class;
+                    $insData  = $insClass->where($joinPk, $pks, 'IN')->all();
+                    $temData  = [];
+                    foreach ($insData as $insK => $insV){
+                        if ($withType=='hasOne'){
+                            $temData[$insV[$pk]] = $insV;
+                        }else if($withType=='hasMany'){
+                            $temData[$insV[$pk]][] = $insV;
+                        }
+                    }
+                    foreach ($data as $model){
+                        if (isset($temData[$model[$pk]])){
+                            $model[$with] = $temData[$model[$pk]];
+                        }
+                    }
+                    $data[0]->preHandleWith = false;
+                } else {
+                    // 闭包的只能一个一个调用
+                    foreach ($data as $model){
+                        foreach ($this->with as $with){
+                            $model->$with();
+                        }
+                    }
+                }
+            }
+            return $data;
+        }
+        return $data;
+    }
+
+
+    public static function defer(float $timeout = null)
+    {
+        try {
+            $model = new static();
+        } catch (Exception $e) {
+            return null;
+        }
+        $connectionName = $model->connectionName;
+
+        return DbManager::getInstance()->getConnection($connectionName)->defer($timeout);
     }
 }

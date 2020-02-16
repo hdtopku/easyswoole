@@ -464,6 +464,35 @@ class QueryBuilder
     }
 
     /**
+     * SELECT 获取某一列的数据
+     * @param $tableName
+     * @param string $columns
+     * @param array|int|null $numRows
+     * @return QueryBuilder|null
+     */
+    public function getColumn($tableName, $columns = null, $numRows = null): ?QueryBuilder
+    {
+        if (!is_string($columns)) {
+            $columns = $this->_field;
+            if (is_array($columns) && count($columns) > 0) {
+                $columns = explode(',', str_replace(' ', '', reset($columns)))[0];
+            }
+        }
+        return $this->get($tableName, $numRows, $columns);
+    }
+
+    /**
+     * SELECT 获取某一列第一行的数据
+     * @param $tableName
+     * @param string $columns
+     * @return QueryBuilder|null
+     */
+    public function getScalar($tableName, $columns = null): ?QueryBuilder
+    {
+        return $this->getColumn($tableName, $columns, 1);
+    }
+
+    /**
      * 插入数据
      * @param $tableName
      * @param $insertData
@@ -498,7 +527,7 @@ class QueryBuilder
             }
         }
 
-        $this->_buildInsert($tableName, $insertData, $option['replace'] ? 'REPLACE' : 'INSERT');
+        $this->_buildInsert($tableName, $insertData, isset($option['replace']) ? 'REPLACE' : 'INSERT');
         $this->reset();
         return $this;
     }
@@ -763,9 +792,17 @@ class QueryBuilder
         $this->raw("rollback");
     }
 
-    public function raw($sql)
+    public function raw($sql, $param = [])
     {
-        $this->lastQuery = $this->lastPrepareQuery = $sql;
+        $this->_query = $sql;
+        if (!empty($param) && is_array($param)){
+            $this->_bindParams($param);
+            $this->lastQuery = $this->replacePlaceHolders($this->_query, $this->_bindParams);
+        }else{
+            $this->lastQuery = $sql;
+        }
+        $this->reset();
+        return $this;
     }
 
     /*
@@ -1090,7 +1127,7 @@ class QueryBuilder
             $dataColumns = array_keys($tableData);
             if ($isInsert) {
                 if (isset ($dataColumns[0]))
-                    $this->_query .= ' (`' . implode($dataColumns, '`, `') . '`) ';
+                    $this->_query .= ' (`' . implode('`, `', $dataColumns) . '`) ';
                 $this->_query .= ' VALUES (';
             } else {
                 $this->_query .= " SET ";

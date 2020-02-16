@@ -85,30 +85,20 @@ class Start implements CommandInterface
         foreach ($ips as $eth => $val) {
             $response = $response . Utility::displayItem('ip@' . $eth, $val) . "\n";
         }
+
         $data = $conf->getConf('MAIN_SERVER.SETTING');
-        $settingArray = [
-            'worker_num',
-            'reload_async',
-            'max_wait_time',
-        ];
-        foreach ($data as $key => $datum) {
-            if (!in_array($key, $settingArray)) {
-                continue;
-            }
-            $response = $response . Utility::displayItem($key, (string)$datum) . "\n";
+        if(empty($data['user'])){
+            $data['user'] = get_current_user();
         }
-        $user = $conf->getConf('MAIN_SERVER.SETTING.user');
-        if (empty($user)) {
-            $user = get_current_user();
+
+        if(!isset($data['daemonize'])){
+            $data['daemonize'] = false;
         }
-        $response = $response . Utility::displayItem('run at user', $user) . "\n";
-        $daemonize = $conf->getConf("MAIN_SERVER.SETTING.daemonize");
-        if ($daemonize) {
-            $daemonize = 'true';
-        } else {
-            $daemonize = 'false';
+
+        foreach ($data as $key => $datum){
+            $response = $response . Utility::displayItem($key,$datum) . "\n";
         }
-        $response = $response . Utility::displayItem('daemonize', $daemonize) . "\n";
+
         $response = $response . Utility::displayItem('swoole version', phpversion('swoole')) . "\n";
         $response = $response . Utility::displayItem('php version', phpversion()) . "\n";
         $response = $response . Utility::displayItem('easy swoole', SysConst::EASYSWOOLE_VERSION) . "\n";

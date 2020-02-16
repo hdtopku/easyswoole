@@ -55,6 +55,75 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals([],$this->builder->getLastBindParams());
     }
 
+    function testGetOne()
+    {
+        $this->builder->getOne('get');
+        $this->assertEquals('SELECT  * FROM get LIMIT 1',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  * FROM get LIMIT 1',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+    }
+
+    function testGetColumn()
+    {
+        $this->builder->getColumn('get');
+        $this->assertEquals('SELECT  * FROM get',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  * FROM get',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+
+        $this->builder->fields('testcolumn')->getColumn('get');
+        $this->assertEquals('SELECT  testcolumn FROM get',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testcolumn FROM get',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+
+        $this->builder->fields('testcolumn1, testcolumn2')->getColumn('get');
+        $this->assertEquals('SELECT  testcolumn1 FROM get',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testcolumn1 FROM get',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+
+        $this->builder->fields(['testcolumn1', 'testcolumn2'])->getColumn('get');
+        $this->assertEquals('SELECT  testcolumn1 FROM get',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testcolumn1 FROM get',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+
+        $this->builder->getColumn('get', 'testcolumn');
+        $this->assertEquals('SELECT  testcolumn FROM get',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testcolumn FROM get',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+
+        $this->builder->getColumn('get', 'testcolumn', 1);
+        $this->assertEquals('SELECT  testcolumn FROM get LIMIT 1',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testcolumn FROM get LIMIT 1',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+
+        $this->builder->getColumn('get', 'testcolumn', [0, 10]);
+        $this->assertEquals('SELECT  testcolumn FROM get LIMIT 0, 10',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testcolumn FROM get LIMIT 0, 10',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+    }
+
+    function testGetScalar()
+    {
+        $this->builder->getScalar('get', 'testscalar');
+        $this->assertEquals('SELECT  testscalar FROM get LIMIT 1',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testscalar FROM get LIMIT 1',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+
+        $this->builder->fields('testscalar')->getScalar('get');
+        $this->assertEquals('SELECT  testscalar FROM get LIMIT 1',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testscalar FROM get LIMIT 1',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+
+        $this->builder->fields('testcolumn1, testcolumn2')->getScalar('get');
+        $this->assertEquals('SELECT  testcolumn1 FROM get LIMIT 1',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testcolumn1 FROM get LIMIT 1',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+
+        $this->builder->fields(['testcolumn1', 'testcolumn2'])->getScalar('get');
+        $this->assertEquals('SELECT  testcolumn1 FROM get LIMIT 1',$this->builder->getLastPrepareQuery());
+        $this->assertEquals('SELECT  testcolumn1 FROM get LIMIT 1',$this->builder->getLastQuery());
+        $this->assertEquals([],$this->builder->getLastBindParams());
+    }
+
     function testWhereGet()
     {
         $this->builder->where('col1',2)->get('whereGet');
@@ -256,5 +325,15 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals('SELECT  * FROM admin WHERE  adminUserName = ? UNION SELECT  * FROM user WHERE  userName = ? ', $this->builder->getLastPrepareQuery());
         $this->assertEquals("SELECT  * FROM admin WHERE  adminUserName = 'admin' UNION SELECT  * FROM user WHERE  userName = 'user' ", $this->builder->getLastQuery());
         $this->assertEquals(['admin','user'],$this->builder->getLastBindParams());
+    }
+
+    public function testRaw()
+    {
+        $this->builder->raw("SELECT * FROM siam ");
+        $this->assertEquals("SELECT * FROM siam ", $this->builder->getLastQuery());
+
+
+        $this->builder->raw("SELECT * FROM siam WHERE siam_name = ? AND age = ?", ['siam', 321]);
+        $this->assertEquals("SELECT * FROM siam WHERE siam_name = 'siam' AND age = 321", $this->builder->getLastQuery());
     }
 }
