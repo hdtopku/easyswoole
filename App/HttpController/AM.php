@@ -128,7 +128,7 @@ class AM extends Controller
             ->count();
         if (array_key_exists('used', $data)) {
             $data['allUsedLength'] = count($data['used']);
-            $data['used'] = array_splice($data['used'], 0, 18);
+            $data['used'] = array_splice($data['used'], 0, 12);
         } else {
             $data['allUsedLength'] = 0;
         }
