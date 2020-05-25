@@ -50,7 +50,7 @@ class JetService extends WebService
             $jet = JetAccount::create()->get(['username' => $account]);
             if (!$jet) {
                 $jet = JetAccount::create(
-                    ['username' => $account, 'password' => 'Crack168', 'status' => -1]
+                    ['username' => $account, 'password' => 'HappyCrack168', 'status' => -1]
                 )->save();
                 if ($jet) {
                     array_push($need_reg_mails, $val);
