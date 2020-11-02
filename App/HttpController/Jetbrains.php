@@ -43,7 +43,7 @@ class Jetbrains extends Controller
             $redis = new RedisService();
             $d = $redis->get('code_switch');
             if ($d == null || $d != '1') {
-                $this->response()->write(json_encode(['error' => '0'], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
+                $this->response()->write(json_encode(['errno' => '0'], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
                 return;
             }
             if ($data) {
