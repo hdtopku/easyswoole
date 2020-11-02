@@ -42,8 +42,8 @@ class Jetbrains extends Controller
             // redis
             $redis = new RedisService();
             $d = $redis->get('code_switch');
-            if (is_null($d) || $d != '1') {
-                $this->response()->write(json_encode(['error' => '500'], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
+            if ($d == null || $d != '1') {
+                $this->response()->write(json_encode(['error' => '200'], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
                 return;
             }
             if ($data) {
@@ -86,7 +86,8 @@ class Jetbrains extends Controller
         } elseif (array_key_exists('switch', $req)) {
             // redis
             $redis = new RedisService();
-            if (is_null($req['switch'])) {
+            $d = $redis->get('code_switch');
+            if ($req['switch'] == null) {
                 $d = $redis->get('code_switch');
                 $this->response()->write(json_encode(
                         ['errno' => '0', 'data' => $d], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
