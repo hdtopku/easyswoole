@@ -39,10 +39,15 @@ class Jetbrains extends Controller
             $oneMonth = date('Y-m-d H:i:s', strtotime('-1 months'));
             $data = Idea::create()->findOne(
                 ['visit_key' => $key, 'status' => [[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
+            // redis
+            $redis = new RedisService();
+            $d = $redis->get('code_switch');
+            if (is_null($d) || $d != '1') {
+                $this->response()->write(json_encode(['error' => '500'], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
+                return;
+            }
             if ($data) {
                 if ($this->isValid($data)) {
-                    // redis
-                    $redis = new RedisService();
                     $d = $redis->get('code');
                     //飞象可用
                     $data['status'] = 1;
@@ -78,6 +83,23 @@ class Jetbrains extends Controller
                 );
                 return;
             }
+        } elseif (array_key_exists('switch', $req)) {
+            // redis
+            $redis = new RedisService();
+            if (is_null($req['switch'])) {
+                $d = $redis->get('code_switch');
+                $this->response()->write(json_encode(
+                        ['errno' => '0', 'data' => $d], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
+                );
+                return;
+            } else {
+                $redis->set('code_switch', $req['switch']);
+                $this->response()->write(json_encode(
+                        ['errno' => '0', 'data' => $req['switch']], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
+                );
+                return;
+            }
+
         }
         $this->response()->write(json_encode(
             ['errno' => '500'],
