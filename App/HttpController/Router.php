@@ -19,7 +19,7 @@ class Router extends AbstractRouter
     function initialize(RouteCollector $routeCollector)
     {
         $routeCollector->get('/user', '/index.html');
-        $routeCollector->get('/am', '/AM/get');
+        $routeCollector->get('/sanfsale9831sf', '/AM/get');
         $routeCollector->get('/am/rdata', '/RandomData');
         $routeCollector->get('/am/j', '/Jetbrains');
         $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/am/jc', '/Jetbrains/activeCode');
