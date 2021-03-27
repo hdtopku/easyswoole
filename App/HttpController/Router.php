@@ -25,8 +25,8 @@ class Router extends AbstractRouter
         $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/sanfsale9831sf/jc', '/Jetbrains/activeCode');
         $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/sanfsale9831sf/ja', '/Jetbrains/account');
 
-        $routeCollector->get('/am/jt', '/Jet');
-        $routeCollector->get('/am/jb', '/Jet/batch');
+        $routeCollector->get('/sanfsale9831sf/jt', '/Jet');
+        $routeCollector->get('/sanfsale9831sf/jb', '/Jet/batch');
 
         $routeCollector->get('/test', '/Test');
 
