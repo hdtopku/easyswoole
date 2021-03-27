@@ -22,8 +22,8 @@ class Router extends AbstractRouter
         $routeCollector->get('/hdanewom', '/AM/get');
         $routeCollector->get('/hdanewom/rdata', '/RandomData');
         $routeCollector->get('/hdanewom/j', '/Jetbrains');
-        $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/sanfsale9831sf/jc', '/Jetbrains/activeCode');
-        $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/sanfsale9831sf/ja', '/Jetbrains/account');
+        $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/hdanewom/jc', '/Jetbrains/activeCode');
+        $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/hdanewom/ja', '/Jetbrains/account');
 
         $routeCollector->get('/hdanewom/jt', '/Jet');
         $routeCollector->get('/hdanewom/jb', '/Jet/batch');
