@@ -20,10 +20,10 @@ class Router extends AbstractRouter
     {
         $routeCollector->get('/user', '/index.html');
         $routeCollector->get('/sanfsale9831sf', '/AM/get');
-        $routeCollector->get('/am/rdata', '/RandomData');
-        $routeCollector->get('/am/j', '/Jetbrains');
-        $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/am/jc', '/Jetbrains/activeCode');
-        $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/am/ja', '/Jetbrains/account');
+        $routeCollector->get('/sanfsale9831sf/rdata', '/RandomData');
+        $routeCollector->get('/sanfsale9831sf/j', '/Jetbrains');
+        $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/sanfsale9831sf/jc', '/Jetbrains/activeCode');
+        $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/sanfsale9831sf/ja', '/Jetbrains/account');
 
         $routeCollector->get('/am/jt', '/Jet');
         $routeCollector->get('/am/jb', '/Jet/batch');
