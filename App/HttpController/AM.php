@@ -67,7 +67,7 @@ class AM extends Controller
                 $data['item'] = $item;
             }
         }
-        $tenDays = date('Y-m-d H:i:s', strtotime('-7 days'));
+        $tenDays = date('Y-m-d H:i:s', strtotime('-29 days'));
         $where = ['update_time' => [$tenDays, '>=']];
         if (array_key_exists('operator_id', $req)) {
             $where['operator_id'] = $req['operator_id'];
