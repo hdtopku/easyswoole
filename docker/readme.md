@@ -1,4 +1,9 @@
 # 使用步骤
+## 启动容器
+```bash
+docker run -dti --restart=always --name am -p 10021:10021 -v /root/coding/easyswoole:/easyswoole registry.cn-hangzhou.aliyuncs.com/hdtopku/easyswoole php easyswoole start
+
+```
 
 ## 一、创建项目
 
