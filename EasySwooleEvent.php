@@ -39,7 +39,7 @@ class EasySwooleEvent implements Event
         $config = new Config();
         $config->setUser('root');
         $config->setPassword('wz95ctxb3hvxezu57ko');
-        $config->setHost('106.14.82.34');
+        $config->setHost('182.92.111.83');
         //连接池配置
         $config->setGetObjectTimeout(3.0); //设置获取连接池对象超时时间
         $config->setIntervalCheckTime(60 * 1000); //设置检测连接存活执行回收和创建的周期
