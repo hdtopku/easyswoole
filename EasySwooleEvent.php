@@ -6,6 +6,7 @@ namespace EasySwoole\EasySwoole;
 use App\Process\HotReload;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
+use EasySwoole\Http\Message\Status;
 use EasySwoole\Http\Request;
 use EasySwoole\Http\Response;
 use EasySwoole\ORM\Db\Config;
@@ -61,14 +62,38 @@ class EasySwooleEvent implements Event
     {
         //拦截请求
         Run::attachRequest($request, $response);
-        $response->withHeader('Access-Control-Allow-Origin', '*');
-        $response->withHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        $response->withHeader('Access-Control-Allow-Credentials', 'true');
-        $response->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-//        if ($request->getMethod() === 'OPTIONS') {
-//            $response->withStatus(Status::CODE_OK);
-//            return false;
+
+//        $param = $request->getRequestParam(); //接收请求参数
+//        if($request->getHeader('content-type')[0]=='application/json'){ //根据内容类型来转换参数
+//            $json = $request->getBody()->__toString();
+//            $json =$json?json_decode($json,1):[];
+//            var_dump($json);
+//            $request->getRequestParam()->add($json);
+////            $param = array_merge($json,$param);
 //        }
+//        var_dump($param);
+//        var_dump($request->getRequestParam());
+
+//        $origin = $request->getHeader("origin");
+//        if ($origin) {
+//            //设置允许的来源数组
+//            $referee = ["http://localhost:8080", "http://0.0.0.0:8080"];
+//            //判断来源进行过滤
+//            if (!in_array($origin[0], $referee)) {
+//                return false;
+//            }
+//        }
+//        var_dump($origin);
+        $response->withHeader('Access-Control-Allow-Origin', '*');
+        $response->withHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, OPTIONS');
+        $response->withHeader('Access-Control-Allow-Credentials', 'true');
+        $response->withHeader('Access-Control-Max-Age', 3600);
+        $response->withHeader('Access-Control-Expose-Headers', 'Authorization, authenticated');
+        $response->withHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Depth, User-Agent, X-File-Size, X-Requested-With, X-Requested-By, If-Modified-Since, X-File-Name, X-File-Type, Cache-Control, Origin');
+        if ($request->getMethod() === 'OPTIONS') {
+            $response->withStatus(Status::CODE_OK);
+            return false;
+        }
         return true;
     }
 
