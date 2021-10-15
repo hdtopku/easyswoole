@@ -18,7 +18,7 @@ class Router extends AbstractRouter
 {
     function initialize(RouteCollector $routeCollector)
     {
-        $routeCollector->post('/video/parse', '/VideoController/parse');
+        $routeCollector->post('/am/video/parse', '/VideoController/parse');
         $routeCollector->get('/user', '/index.html');
         $routeCollector->get('/am/nfsmabeawn', '/AM/get');
         $routeCollector->get('/am/rdata', '/RandomData');
