@@ -19,10 +19,12 @@ class VideoController extends Controller
         ini_set('display_errors', 'off');
         error_reporting(E_ALL || ~E_NOTICE);
         $url = json_decode($this->request()->getBody()->__toString())->url;
+        if (!$url) {
+            $url = $this->request()->getRequestParam('url');
+        }
         $id = $_GET['id'];
         $vid = $_GET['vid'];
         $basai_id = $_GET['data'];
-
         $api = new VideoSpider;
         if (strpos($url, 'pipix')) {
             $arr = $api->pipixia($url);
