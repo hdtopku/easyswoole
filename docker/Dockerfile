@@ -2,8 +2,8 @@ FROM easyswoole/easyswoole3
 ENV SWOOLE_VERSION 4.4.23
 
 RUN cd /etc/yum.repos.d && \
-    wget -O CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo && \
-    yum install -y zsh vim git php71w-pear deltarpm && pecl channel-update pecl.php.net && \
+    wget -O CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-8.repo && \
+    yum install -y zsh vim git php7-json && \
     sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" && \
     composer config -g repo.packagist composer https://mirrors.aliyun.com/composer && \
     composer global require hirak/prestissimo
