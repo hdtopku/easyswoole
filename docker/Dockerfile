@@ -1,5 +1,5 @@
 FROM easyswoole/easyswoole3
-ENV SWOOLE_VERSION 4.4.12
+ENV SWOOLE_VERSION 4.4.23
 
 RUN cd /etc/yum.repos.d && mv CentOS-Base.repo CentOS-Base.repoe.bak && \
     wget -O CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo && \
