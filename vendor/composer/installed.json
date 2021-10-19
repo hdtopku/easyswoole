@@ -1480,6 +1480,68 @@
             "install-path": "../easyswoole/redis"
         },
         {
+            "name": "easyswoole/redis-pool",
+            "version": "2.2.1",
+            "version_normalized": "2.2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/easy-swoole/redis-pool.git",
+                "reference": "223f3bafe2d7013d1f38b6d5a84509a0b74fc4b0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/easy-swoole/redis-pool/zipball/223f3bafe2d7013d1f38b6d5a84509a0b74fc4b0",
+                "reference": "223f3bafe2d7013d1f38b6d5a84509a0b74fc4b0",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
+            },
+            "require": {
+                "easyswoole/component": "^2.0",
+                "easyswoole/pool": "^1.0",
+                "easyswoole/redis": "^1.0",
+                "easyswoole/spl": "^1.1"
+            },
+            "require-dev": {
+                "easyswoole/swoole-ide-helper": "^1.2"
+            },
+            "time": "2020-12-29T05:48:33+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "EasySwoole\\RedisPool\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "YF",
+                    "email": "291323003@qq.com"
+                }
+            ],
+            "description": "An efficient swoole framework",
+            "homepage": "https://www.easyswoole.com/",
+            "keywords": [
+                "async",
+                "easyswoole",
+                "framework",
+                "swoole"
+            ],
+            "support": {
+                "issues": "https://github.com/easy-swoole/redis-pool/issues",
+                "source": "https://github.com/easy-swoole/redis-pool/tree/2.2.1"
+            },
+            "install-path": "../easyswoole/redis-pool"
+        },
+        {
             "name": "easyswoole/session",
             "version": "3.0.1",
             "version_normalized": "3.0.1.0",

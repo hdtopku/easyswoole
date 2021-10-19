@@ -85,7 +85,7 @@ class HotReload extends AbstractProcess
                     $doReload = true;
                 } else {
                     // 修改文件 但未发生inode变更
-                    $oldTime = $this->table->all($inode)['mtime'];
+                    $oldTime = $this->table->get($inode)['mtime'];
                     if ($oldTime != $mtime) {
                         $this->table->set($inode, ['mtime' => $mtime]);
                         $doReload = true;

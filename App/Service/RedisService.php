@@ -9,29 +9,18 @@
 namespace App\Service;
 
 
-use EasySwoole\Http\WebService;
+use EasySwoole\RedisPool\RedisPool;
 
-class RedisService extends WebService
+class RedisService
 {
-    function get_cli()
-    {
-        $redis = new \EasySwoole\Redis\Redis(new \EasySwoole\Redis\Config\RedisConfig([
-            'host' => '182.92.111.83',
-            'port' => '6379',
-            'auth' => 'wz95ctxb3hvxezu57ko',
-            'serialize' => \EasySwoole\Redis\Config\RedisConfig::SERIALIZE_NONE
-        ]));
-        return $redis;
-    }
-
 
     function get($key)
     {
-        return $this->get_cli()->all($key);
+        return RedisPool::defer()->get($key);
     }
 
     function set($key, $val)
     {
-        $this->get_cli()->set($key, $val);
+        RedisPool::defer()->set($key, $val);
     }
 }

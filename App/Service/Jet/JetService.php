@@ -19,7 +19,7 @@ class JetService extends WebService
     function get_mails()
     {
         $redis = new RedisService();
-        $words = $redis->all('words');
+        $words = $redis->get('words');
         return json_decode($words);
     }
 

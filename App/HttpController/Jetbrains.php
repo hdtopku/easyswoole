@@ -41,21 +41,21 @@ class Jetbrains extends Controller
                 ['visit_key' => $key, 'status' => [[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
             // redis
             $redis = new RedisService();
-            $d = $redis->all('code_switch');
+            $d = $redis->get('code_switch');
             if ($d == null || $d != '1') {
                 $this->response()->write(json_encode(['errno' => '0'], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
                 return;
             }
             if ($data) {
                 if ($this->isValid($data)) {
-                    $d = $redis->all('code');
+                    $d = $redis->get('code');
                     //飞象可用
                     $data['status'] = 1;
                     $data['visit_count'] = $data['visit_count'] + 1;
                     if ($data['update_time'] == $data['create_time']) {
                         $data['update_time'] = date('Y-m-d H:i:s');
                     }
-                    Idea::create()->update($data, ['id' => $data['id']]);
+                    Idea::create()->update([$data], ['id' => $data['id']]);
                     $this->response()->write(json_encode(
                         ['errno' => '0', 'data' => $d],
                         JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
@@ -86,9 +86,9 @@ class Jetbrains extends Controller
         } elseif (array_key_exists('switch', $req)) {
             // redis
             $redis = new RedisService();
-            $d = $redis->all('code_switch');
+            $d = $redis->get('code_switch');
             if ($req['switch'] == null) {
-                $d = $redis->all('code_switch');
+                $d = $redis->get('code_switch');
                 $this->response()->write(json_encode(
                         ['errno' => '0', 'data' => $d], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
                 );
@@ -156,7 +156,7 @@ class Jetbrains extends Controller
             $redis->set('code', $req['code']);
         }
         $this->response()->write(json_encode(
-                ['errno' => '0', 'data' => $redis->all('code')], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
+                ['errno' => '0', 'data' => $redis->get('code')], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
         );
     }
 
@@ -245,6 +245,7 @@ class Jetbrains extends Controller
         $data['accountsDel'] = $accountsDel or [];
         $data['accountsEffect'] = $accountsEffect or [];
         $res = ['errno' => '0', 'data' => $data];
+        var_dump($res);
         $this->response()->write(json_encode($res));
     }
 }

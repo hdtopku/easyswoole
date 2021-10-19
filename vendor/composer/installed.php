@@ -5,7 +5,7 @@
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'reference' => '54608f5b052ff19a9ecf827fa0273e625cb25f38',
+        'reference' => '4af802a96e5d8444c16b69a58acb7c051a259b4e',
         'name' => '__root__',
         'dev' => true,
     ),
@@ -16,7 +16,7 @@
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
-            'reference' => '54608f5b052ff19a9ecf827fa0273e625cb25f38',
+            'reference' => '4af802a96e5d8444c16b69a58acb7c051a259b4e',
             'dev_requirement' => false,
         ),
         'doctrine/instantiator' => array(
@@ -224,6 +224,15 @@
             'install_path' => __DIR__ . '/../easyswoole/redis',
             'aliases' => array(),
             'reference' => 'd970f5672353b6dc203950779d464d6dcfa54de8',
+            'dev_requirement' => false,
+        ),
+        'easyswoole/redis-pool' => array(
+            'pretty_version' => '2.2.1',
+            'version' => '2.2.1.0',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../easyswoole/redis-pool',
+            'aliases' => array(),
+            'reference' => '223f3bafe2d7013d1f38b6d5a84509a0b74fc4b0',
             'dev_requirement' => false,
         ),
         'easyswoole/session' => array(
