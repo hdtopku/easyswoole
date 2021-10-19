@@ -17,12 +17,12 @@ class Router extends AbstractRouter
     function initialize(RouteCollector $routeCollector)
     {
         $routeCollector->post('/am/video/parse', '/VideoController/parse');
-        $routeCollector->all('/am/nfsmabeawn', '/AM/get');
-        $routeCollector->all('/am/j', '/Jetbrains');
+        $routeCollector->get('/am/nfsmabeawn', '/AM/get');
+        $routeCollector->get('/am/j', '/Jetbrains');
         $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/am/jc', '/Jetbrains/activeCode');
         $routeCollector->addRoute(['GET', 'POST', 'OPTIONS'], '/am/ja', '/Jetbrains/account');
 
-        $routeCollector->all('/am/jt', '/Jet');
-        $routeCollector->all('/am/jb', '/Jet/batch');
+        $routeCollector->get('/am/jt', '/Jet');
+        $routeCollector->get('/am/jb', '/Jet/batch');
     }
 }
