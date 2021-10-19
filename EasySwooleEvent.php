@@ -34,6 +34,22 @@ class EasySwooleEvent implements Event
             $whoops->register();
         } catch (\Exception $e) {
         }
+        // 实现 onRequest 事件
+        \EasySwoole\Component\Di::getInstance()->set(\EasySwoole\EasySwoole\SysConst::HTTP_GLOBAL_ON_REQUEST, function (\EasySwoole\Http\Request $request, \EasySwoole\Http\Response $response): bool {
+
+            ###### 处理请求的跨域问题 ######
+            $response->withHeader('Access-Control-Allow-Origin', '*');
+            $response->withHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, OPTIONS');
+            $response->withHeader('Access-Control-Allow-Credentials', 'true');
+            $response->withHeader('Access-Control-Max-Age', 3600);
+            $response->withHeader('Access-Control-Expose-Headers', 'Authorization, authenticated');
+            $response->withHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Depth, User-Agent, X-File-Size, X-Requested-With, X-Requested-By, If-Modified-Since, X-File-Name, X-File-Type, Cache-Control, Origin');
+            if ($request->getMethod() === 'OPTIONS') {
+                $response->withStatus(\EasySwoole\Http\Message\Status::CODE_OK);
+                return false;
+            }
+            return true;
+        });
     }
 
     public static function mainServerCreate(EventRegister $register)
@@ -64,22 +80,22 @@ class EasySwooleEvent implements Event
 
     public static function onRequest(Request $request, Response $response): bool
     {
-        //拦截请求
-        try {
-            Run::attachRequest($request, $response);
-        } catch (ModifyError $e) {
-        }
-        $response->withHeader('Access-Control-Allow-Origin', '*');
-        $response->withHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, OPTIONS');
-        $response->withHeader('Access-Control-Allow-Credentials', 'true');
-        $response->withHeader('Access-Control-Max-Age', 3600);
-        $response->withHeader('Access-Control-Expose-Headers', 'Authorization, authenticated');
-        $response->withHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Depth, User-Agent, X-File-Size, X-Requested-With, X-Requested-By, If-Modified-Since, X-File-Name, X-File-Type, Cache-Control, Origin');
-        if ($request->getMethod() === 'OPTIONS') {
-            $response->withStatus(Status::CODE_OK);
-            return false;
-        }
-        return true;
+//        //拦截请求
+//        try {
+//            Run::attachRequest($request, $response);
+//        } catch (ModifyError $e) {
+//        }
+//        $response->withHeader('Access-Control-Allow-Origin', '*');
+//        $response->withHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, OPTIONS');
+//        $response->withHeader('Access-Control-Allow-Credentials', 'true');
+//        $response->withHeader('Access-Control-Max-Age', 3600);
+//        $response->withHeader('Access-Control-Expose-Headers', 'Authorization, authenticated');
+//        $response->withHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Depth, User-Agent, X-File-Size, X-Requested-With, X-Requested-By, If-Modified-Since, X-File-Name, X-File-Type, Cache-Control, Origin');
+//        if ($request->getMethod() === 'OPTIONS') {
+//            $response->withStatus(Status::CODE_OK);
+//            return false;
+//        }
+//        return true;
     }
 
     public static function afterRequest(Request $request, Response $response): void
