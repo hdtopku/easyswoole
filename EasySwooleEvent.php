@@ -4,10 +4,8 @@ namespace EasySwoole\EasySwoole;
 
 
 use App\Process\HotReload;
-use EasySwoole\Component\Context\Exception\ModifyError;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
-use EasySwoole\Http\Message\Status;
 use EasySwoole\Http\Request;
 use EasySwoole\Http\Response;
 use EasySwoole\ORM\Db\Config;
@@ -95,7 +93,7 @@ class EasySwooleEvent implements Event
 //            $response->withStatus(Status::CODE_OK);
 //            return false;
 //        }
-//        return true;
+        return true;
     }
 
     public static function afterRequest(Request $request, Response $response): void
