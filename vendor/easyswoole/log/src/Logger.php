@@ -16,60 +16,40 @@ class Logger implements LoggerInterface
         $this->logDir = $logDir;
     }
 
-    function log(?string $msg,int $logLevel = self::LOG_LEVEL_INFO,string $category = 'DEBUG'):string
+    function log(?string $msg,int $logLevel = self::LOG_LEVEL_DEBUG,string $category = 'debug')
     {
+        $prefix = date('Ym');
         $date = date('Y-m-d H:i:s');
         $levelStr = $this->levelMap($logLevel);
-        $filePath = $this->logDir."/log.log";
-        $str = "[{$date}][{$category}][{$levelStr}] : [{$msg}]\n";
+        $filePath = $this->logDir."/log_{$prefix}.log";
+        $str = "[{$date}][{$category}][{$levelStr}]:[{$msg}]\n";
         file_put_contents($filePath,"{$str}",FILE_APPEND|LOCK_EX);
         return $str;
     }
 
-    function console(?string $msg,int $logLevel = self::LOG_LEVEL_INFO,string $category = 'DEBUG')
+    function console(?string $msg,int $logLevel = self::LOG_LEVEL_DEBUG,string $category = 'debug')
     {
         $date = date('Y-m-d H:i:s');
         $levelStr = $this->levelMap($logLevel);
-        $temp =  $this->colorString("[{$date}][{$category}][{$levelStr}] : [{$msg}]",$logLevel)."\n";
-        fwrite(STDOUT,$temp);
-    }
-
-    private function colorString(string $str,int $logLevel)
-    {
-        switch($logLevel) {
-            case self::LOG_LEVEL_INFO:
-                $out = "[42m";
-                break;
-            case self::LOG_LEVEL_NOTICE:
-                $out = "[43m";
-                break;
-            case self::LOG_LEVEL_WARNING:
-                $out = "[45m";
-                break;
-            case self::LOG_LEVEL_ERROR:
-                $out = "[41m";
-                break;
-            default:
-                $out = "[42m";
-                break;
-        }
-        return chr(27) . "$out" . "{$str}" . chr(27) . "[0m";
+        echo "[{$date}][{$category}][{$levelStr}]:[{$msg}]\n";
     }
 
     private function levelMap(int $level)
     {
         switch ($level)
         {
+            case self::LOG_LEVEL_DEBUG:
+                return 'debug';
             case self::LOG_LEVEL_INFO:
-               return 'INFO';
+               return 'info';
             case self::LOG_LEVEL_NOTICE:
-                return 'NOTICE';
+                return 'notice';
             case self::LOG_LEVEL_WARNING:
-                return 'WARNING';
+                return 'warning';
             case self::LOG_LEVEL_ERROR:
-                return 'ERROR';
+                return 'error';
             default:
-                return 'UNKNOWN';
+                return 'unknown';
         }
     }
 }

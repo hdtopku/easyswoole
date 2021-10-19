@@ -13,7 +13,8 @@
     ],
     "require": {
         "php": ">=7.1.0",
-        "easyswoole/spl": "^1.1"
+        "easyswoole/spl": "^1.1",
+        "easyswoole/doctrine-annotations": "^1.0"
     },
     "require-dev": {
         "easyswoole/swoole-ide-helper": "^1.2",
@@ -21,7 +22,11 @@
     },
     "autoload": {
         "psr-4": {
-            "EasySwoole\\Annotation\\": "src/",
+            "EasySwoole\\Annotation\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
             "EasySwoole\\Annotation\\Tests\\": "tests/"
         }
     }

@@ -9,24 +9,23 @@
 namespace EasySwoole\EasySwoole;
 
 
-use EasySwoole\Component\Process\AbstractProcess;
 use EasySwoole\Component\Singleton;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
-use Swoole\Process;
-use Swoole\Redis\Server as RedisServer;
+use Swoole\Server;
+use Swoole\WebSocket\Server as WebSocketServer;
+use Swoole\Http\Server as HttpServer;
 
 class ServerManager
 {
     use Singleton;
     /**
-     * @var \swoole_server $swooleServer
+     * @var Server $swooleServer
      */
     private $swooleServer;
     private $mainServerEventRegister;
     private $subServer = [];
     private $subServerRegister = [];
     private $isStart = false;
-    private $customProcess = [];
 
     function __construct()
     {
@@ -34,7 +33,7 @@ class ServerManager
     }
     /**
      * @param string $serverName
-     * @return null|\swoole_server|\swoole_server_port|\swoole_websocket_server|\swoole_http_server
+     * @return null|Server|Server\Port|WebSocketServer|HttpServer
      */
     function getSwooleServer(string $serverName = null)
     {
@@ -52,19 +51,15 @@ class ServerManager
     {
         switch ($type){
             case EASYSWOOLE_SERVER:{
-                $this->swooleServer = new \swoole_server($address,$port,...$args);
+                $this->swooleServer = new Server($address,$port,...$args);
                 break;
             }
             case EASYSWOOLE_WEB_SERVER:{
-                $this->swooleServer = new \swoole_http_server($address,$port,...$args);
+                $this->swooleServer = new HttpServer($address,$port,...$args);
                 break;
             }
             case EASYSWOOLE_WEB_SOCKET_SERVER:{
-                $this->swooleServer = new \swoole_websocket_server($address,$port,...$args);
-                break;
-            }
-            case EASYSWOOLE_REDIS_SERVER:{
-                $this->swooleServer = new RedisServer($address,$port,...$args);
+                $this->swooleServer = new WebSocketServer($address,$port,...$args);
                 break;
             }
             default:{
@@ -97,37 +92,20 @@ class ServerManager
         return $eventRegister;
     }
 
-    public function addProcess(AbstractProcess $process, string $processName=null)
+    function getEventRegister(string $serverName = null):?EventRegister
     {
-        if ($processName === null) {
-            $processName = $process->getProcessName();
-            if ($processName === null) {
-                $processClass = get_class($process);
-                $processName = basename(str_replace('\\','/',$processClass));
-            }
+        if($serverName === null){
+            return $this->mainServerEventRegister;
+        }else if(isset($this->subServerRegister[$serverName])){
+            return $this->subServerRegister[$serverName];
         }
-
-        if (isset($this->customProcess[$processName])) {
-            throw new \Exception("Custom process names must be unique :{$processName}");
-        }
-
-        $this->customProcess[$processName] = $process->getProcess();
-        $this->getSwooleServer()->addProcess($process->getProcess());
-    }
-
-    public function getProcess(string $processName) : ?process
-    {
-        return $this->customProcess[$processName];
-    }
-
-    function getMainEventRegister():EventRegister
-    {
-        return $this->mainServerEventRegister;
+        return null;
     }
 
     function start()
     {
-        $events = $this->getMainEventRegister()->all();
+        //注册主服务事件回调
+        $events = $this->getEventRegister()->all();
         foreach ($events as $event => $callback){
             $this->getSwooleServer()->on($event, function (...$args) use ($callback) {
                 foreach ($callback as $item) {
@@ -135,18 +113,7 @@ class ServerManager
                 }
             });
         }
-        $this->registerSubPortCallback();
-        $this->isStart = true;
-        $this->getSwooleServer()->start();
-    }
-
-    function isStart():bool
-    {
-        return $this->isStart;
-    }
-
-    private function registerSubPortCallback():void
-    {
+        //注册子服务的事件回调
         foreach ($this->subServer as $serverName => $subPort ){
             $events = $this->subServerRegister[$serverName]['eventRegister']->all();
             foreach ($events as $event => $callback){
@@ -157,10 +124,12 @@ class ServerManager
                 });
             }
         }
+        $this->isStart = true;
+        $this->getSwooleServer()->start();
     }
 
-    function getSubServerRegister():array
+    function isStart():bool
     {
-        return $this->subServerRegister;
+        return $this->isStart;
     }
 }

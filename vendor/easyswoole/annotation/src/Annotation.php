@@ -4,6 +4,9 @@
 namespace EasySwoole\Annotation;
 
 
+
+use EasySwoole\DoctrineAnnotation\AnnotationReader;
+
 class Annotation
 {
     protected $parserTagList = [];
@@ -15,24 +18,26 @@ class Annotation
         $this->parserTagList = $parserTagList;
     }
 
-    public function strictMode(?bool $strict = null)
+    function addAlias(string $alias,string $realTagName)
     {
-        if($strict !== null){
-            $this->strictMode = $strict;
-        }
-        return $this->strictMode;
+        $this->aliasMap[$realTagName] = $alias;
+        return $this;
     }
+
+    public function strictMode(bool $is)
+    {
+        $this->strictMode = $is;
+        return $this;
+    }
+
 
     function addParserTag(AbstractAnnotationTag $annotationTag):Annotation
     {
-        $this->parserTagList[strtolower($annotationTag->tagName())] = $annotationTag;
-        foreach ($annotationTag->aliasMap() as $item){
-            if(!isset($this->aliasMap[md5($item)])){
-                $this->aliasMap[md5(strtolower($item))] = $annotationTag->tagName();
-            }else{
-                throw new Exception("alias name {$item} for tag:{$annotationTag->tagName()} is duplicate with tag:{$this->aliasMap[md5($item)]}");
-            }
+        $name = $annotationTag->tagName();
+        if(isset($this->aliasMap[$name])){
+            throw new Exception("tag alias name {$name} and tag name is duplicate");
         }
+        $this->parserTagList[$name] = $annotationTag;
         return $this;
     }
 
@@ -42,67 +47,36 @@ class Annotation
         return $this;
     }
 
-    function getPropertyAnnotation(\ReflectionProperty $property):array
-    {
-        $doc = $property->getDocComment();
-        $doc = $doc ? $doc : '';
-        return $this->parser($doc);
-    }
 
-    function getClassMethodAnnotation(\ReflectionMethod $method):array
+    function getAnnotation(\Reflector $ref):array
     {
-        $doc = $method->getDocComment();
-        $doc = $doc ? $doc : '';
-        return $this->parser($doc);
-    }
-
-    private function parser(string $doc):array
-    {
-        $result = [];
-        $tempList = explode(PHP_EOL,$doc);
-        foreach ($tempList as $line){
-            $line = trim($line);
-            $pos = strpos($line,'@');
-            if($pos !== false && $pos <= 3){
-                $lineItem = self::parserLine($line);
-                if($lineItem){
-                    $tagName = '';
-                    if(isset($this->parserTagList[strtolower($lineItem->getName())])){
-                        $tagName = $lineItem->getName();
-                    }else if(isset($this->aliasMap[md5(strtolower($lineItem->getName()))])){
-                        $tagName = $this->aliasMap[md5(strtolower($lineItem->getName()))];
-                        /*
-                         * 矫正最终名字
-                         */
-                        $lineItem->setName($tagName);
+        $ret = [];
+        $reader = new AnnotationReader();
+        if($ref instanceof \ReflectionMethod){
+            $temp = $reader->getMethodAnnotations($ref);
+        }else if($ref instanceof \ReflectionProperty){
+            $temp = $reader->getPropertyAnnotations($ref);
+        }else if($ref instanceof \ReflectionClass){
+            $temp = $reader->getClassAnnotations($ref);
+        }
+        if(!empty($temp)) {
+            foreach ($temp as $item){
+                if($item instanceof AbstractAnnotationTag){
+                    $name = $item->tagName();
+                    $item->__onParser();
+                    if(isset($this->parserTagList[$name])){
+                        $ret[$name][] = $item;
+                        if(isset($this->aliasMap[$name])){
+                            $alias = clone $item;
+                            $alias->aliasFrom($name);
+                            $alias->__onParser();
+                            $name = $this->aliasMap[$name];
+                            $ret[$name][] = $alias;
+                        }
                     }
-                    if(isset($this->parserTagList[strtolower($tagName)])){
-                        /** @var AbstractAnnotationTag $obj */
-                        $obj = clone $this->parserTagList[strtolower($tagName)];
-                        $obj->assetValue($lineItem->getValue());
-                        $result[$lineItem->getName()][] = $obj ;
-                    }else if($this->strictMode){
-                        throw new Exception("parser fail because of unregister tag name:{$lineItem->getName()} in strict parser mode");
-                    }
-                }else if($this->strictMode){
-                    throw new Exception("parser fail for data:{$line} in strict parser mode");
                 }
             }
         }
-        return $result;
-    }
-
-    public static function parserLine(string $line):?LineItem
-    {
-        $pattern = '/@(\\\?[a-zA-Z][0-9a-zA-Z_\\\]*?)\((.*)\)/';
-        preg_match($pattern, $line,$match);
-        if(is_array($match) && (count($match) == 3)){
-            $item = new LineItem();
-            $item->setName(trim($match[1]," \t\n\r\0\x0B\\"));
-            $item->setValue(trim($match[2]));
-            return $item;
-        }else{
-            return null;
-        }
+        return $ret;
     }
 }

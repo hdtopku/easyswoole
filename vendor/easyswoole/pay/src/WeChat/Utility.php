@@ -12,6 +12,7 @@ use EasySwoole\Pay\Exceptions\GatewayException;
 use EasySwoole\Pay\Exceptions\InvalidArgumentException;
 use EasySwoole\Pay\Exceptions\InvalidSignException;
 use EasySwoole\Pay\Utility\NewWork;
+use EasySwoole\Pay\WeChat\RequestBean\BarCode;
 use EasySwoole\Pay\WeChat\RequestBean\Base;
 use EasySwoole\Spl\SplArray;
 
@@ -51,15 +52,20 @@ class Utility
      */
     private function getSignContent(array $data): string
     {
-    	unset($data['sign']);
-       return  urldecode(http_build_query($data));
-       /*
-        $buff = '';
-        foreach ($data as $k => $v) {
-            $buff .= ($k != 'sign' && $v != '' && !is_array($v)) ? $k . '=' . $v . '&' : '';
+        unset($data['sign']);
+        foreach ($data as $key => $value) {
+            if ($value === null || $value === '') {
+                unset($data[$key]);
+            }
         }
-        return trim($buff, '&');
-       */
+        return  urldecode(http_build_query($data));
+        /*
+         $buff = '';
+         foreach ($data as $k => $v) {
+             $buff .= ($k != 'sign' && $v != '' && !is_array($v)) ? $k . '=' . $v . '&' : '';
+         }
+         return trim($buff, '&');
+        */
     }
 
     /**
@@ -75,9 +81,16 @@ class Utility
     public function requestApi(string $endpoint, Base $bean, bool $useCert = false): SplArray
     {
         $result = $this->request($endpoint, $bean, $useCert);
+
         $result = is_array($result) ? $result : $this->fromXML($result);
+
         if (!isset($result['return_code']) || $result['return_code'] != 'SUCCESS' || $result['result_code'] != 'SUCCESS') {
-            throw new GatewayException('Get Wechat API Error:' . ($result['return_msg'] ?? $result['retmsg']) . ($result['err_code_des'] ?? ''), 20000);
+            throw new GatewayException('Get Wechat API Error:' . ($result['return_msg'] ?? $result['retmsg']) . ($result['err_code_des'] ?? ''),$result,$result['return_code']);
+        }
+
+        // 这里为了兼容微信的一个BUG，用请求的sign_type代替响应值里的sign_type
+        if (!isset($result['sign_type']) && $bean->getSignType() != null) {
+            $result['sign_type'] = $bean->getSignType();
         }
         if (strpos($endpoint, 'mmpaymkttransfers') !== false || $this->generateSign($result) === $result['sign']) {
             return new SplArray($result);
@@ -95,10 +108,19 @@ class Utility
      */
     public function request(string $endpoint, Base $bean, bool $useCert = false): string
     {
-        $bean->setAppId($bean instanceof \EasySwoole\Pay\WeChat\RequestBean\MiniProgram ? $this->config->getMiniAppId() : $this->config->getAppId());
-        $bean->setMchId($this->config->getMchId());
+        if ($bean instanceof BarCode){
+            $bean->setNotifyUrl(null);
+        }
+        if($endpoint==='/mmpaymkttransfers/promotion/transfers'){ //企业付款需要商家号mch_appid
+            $bean->setMchAppId($this->config->getMchAppId());// 商家appid mch_appid
+            $bean->setTransferMchId($this->config->getMchId());      // 商家号mchid
+        }else{  //非企业付款
+            $bean->setAppId($bean instanceof \EasySwoole\Pay\WeChat\RequestBean\MiniProgram ? $this->config->getMiniAppId() : $this->config->getAppId());
+            $bean->setMchId($this->config->getMchId()); // 商家号mch_id
+        }
         $bean->setSign($this->generateSign($bean->toArray()));
-        $response = NewWork::postXML($this->config->getGateWay() . $endpoint, (new SplArray($bean->toArray()))->toXML(true), $useCert ? [
+        $xml = (new SplArray($bean->toArray(null,$bean::FILTER_NOT_NULL)))->toXML(true);
+        $response = NewWork::postXML($this->config->getGateWay() . $endpoint,$xml , $useCert ? [
             'ssl_cert_file' => $this->config->getApiClientCert(),
             'ssl_key_file' => $this->config->getApiClientKey()]
             : []);
@@ -119,7 +141,7 @@ class Utility
         if (!$xml) {
             throw new InvalidArgumentException('Convert To Array Error! Invalid Xml!');
         }
-        libxml_disable_entity_loader(true);
+        if (\PHP_VERSION_ID < 80000 || \LIBXML_VERSION < 20900) libxml_disable_entity_loader(true);
         return json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
     }
 

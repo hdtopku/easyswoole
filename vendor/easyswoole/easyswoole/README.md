@@ -9,7 +9,7 @@
 
 # EasySwoole - A High Performance Swoole Framework
 
-[EasySwoole](https://www.easyswoole.com/) is a distributed, persistent memory PHP framework based on the Swoole extension. It was created specifically for APIs to get rid of the performance penalties associated with process calls and file loading. EasySwoole highly encapsulates the Swoole Server and still maintains the original features of the Swoole server, supports simultaneous monitoring of HTTP, custom TCP, and UDP protocols, allowing developers to write multi-process, asynchronous, and highly available applications with minimal learning cost and effort.
+[EasySwoole](http://english.easyswoole.com/) is a distributed, persistent memory PHP framework based on the Swoole extension. It was created specifically for APIs to get rid of the performance penalties associated with process calls and file loading. EasySwoole highly encapsulates the Swoole Server and still maintains the original features of the Swoole server, supports simultaneous monitoring of HTTP, custom TCP, and UDP protocols, allowing developers to write multi-process, asynchronous, and highly available applications with minimal learning cost and effort.
           
 - Base on Swoole extension
 - Built-in HTTP, TCP, WebSocket,Udp Coroutine Server
@@ -31,8 +31,9 @@
 
 ## Doc 
 
-- [Doc](https://www.easyswoole.com/)
-- [Git For Doc](https://github.com/easy-swoole/doc-3.3.x)
+- [Doc](http://english.easyswoole.com)
+- [中文文档](http://www.easyswoole.com)
+- [Git For Doc](https://github.com/easy-swoole/doc)
 
 ## ab Test
 
@@ -109,15 +110,9 @@ Transfer rate:          2265.40 [Kbytes/sec] received
 
 ## Quick Start
 ```
-composer require easyswoole/easyswoole=3.x
+composer require easyswoole/easyswoole=3.4.x
 php vendor/bin/easyswoole install
-php easyswoole start
-```
-
-## Unit Test
-after install easyswoole,run:
-```
-php easyswoole phpunit ./vendor/easyswoole/easyswoole/tests
+php easyswoole server start
 ```
 
 ## Docker
@@ -131,14 +126,17 @@ docker pull easyswoole/easyswoole3
 docker run -ti -p 9501:9501 easyswoole/easyswoole3
 ```
 - WorkerDir: ***/easyswoole***
-- Run Easyswoole : ***php easyswoole start*** 
+- Run Easyswoole : ***php easyswoole server start*** 
 
 ## Others 
 - [Git For Demo](https://github.com/easy-swoole/demo)
 - QQ交流群
     - VIP群 579434607 （本群需要付费599元）
     - EasySwoole官方一群 633921431(已满)
-    - EasySwoole官方二群 709134628
+    - EasySwoole官方二群 709134628(已满)
+    - EasySwoole官方三群 932625047(已满)
+    - EasySwoole官方四群 779897753(已满)
+    - EasySwoole官方五群 853946743
     
 - 商业支持：
     - QQ 291323003

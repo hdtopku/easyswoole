@@ -4,33 +4,34 @@
 namespace EasySwoole\Redis;
 
 
-use EasySwoole\Redis\CommandHandel\Auth;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterAddSlots;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterCountFailureReports;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterCountKeySinSlot;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterDelSlots;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterFailOver;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterForget;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterGetKeySinSlot;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterInfo;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterKeySlot;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterMeet;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterNodes;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterReplicate;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterReset;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterSaveConfig;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterSetConfigEpoch;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterSetSlot;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterSlaves;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\ClusterSlots;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\Readonly;
-use EasySwoole\Redis\CommandHandel\ClusterCommand\Readwrite;
-use EasySwoole\Redis\CommandHandel\Del;
-use EasySwoole\Redis\CommandHandel\ExecPipe;
-use EasySwoole\Redis\CommandHandel\MGet;
-use EasySwoole\Redis\CommandHandel\MSet;
-use EasySwoole\Redis\CommandHandel\MSetNx;
-use EasySwoole\Redis\CommandHandel\Unlink;
+use EasySwoole\Redis\CommandHandle\Auth;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterAddSlots;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterCountFailureReports;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterCountKeySinSlot;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterDelSlots;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterFailOver;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterForget;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterGetKeySinSlot;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterInfo;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterKeySlot;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterMeet;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterNodes;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterReplicate;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterReset;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterSaveConfig;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterSetConfigEpoch;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterSetSlot;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterSlaves;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\ClusterSlots;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\Readonly;
+use EasySwoole\Redis\CommandHandle\ClusterCommand\Readwrite;
+use EasySwoole\Redis\CommandHandle\Del;
+use EasySwoole\Redis\CommandHandle\ExecPipe;
+use EasySwoole\Redis\CommandHandle\MGet;
+use EasySwoole\Redis\CommandHandle\MSet;
+use EasySwoole\Redis\CommandHandle\MSetNx;
+use EasySwoole\Redis\CommandHandle\Ping;
+use EasySwoole\Redis\CommandHandle\Unlink;
 use EasySwoole\Redis\Config\RedisClusterConfig;
 use EasySwoole\Redis\Exception\RedisClusterException;
 
@@ -100,10 +101,34 @@ class RedisCluster extends Redis
         return $this->clientConnect($client, $timeout);
     }
 
-    function disconnect()
+    public function disconnect()
     {
         $client = $this->getDefaultClient();
         $this->clientDisconnect($client);
+    }
+
+    public function pingAll()
+    {
+        //获取所有客户端
+        $result = [];
+        /**
+         * @var $client ClusterClient
+         */
+        foreach ($this->nodeClientList as $key => $client) {
+            $handelClass = new Ping($this);
+            $command = $handelClass->getCommand();
+            if (!$this->sendCommandByClient($command, $client)) {
+                $result[$key] = false;
+                continue;
+            }
+            $recv = $this->recvByClient($client);
+            if ($recv === null) {
+                $result[$key] = false;
+                continue;
+            }
+            $result[$key] = $handelClass->getData($recv);
+        }
+        return $result;
     }
     ######################服务器连接方法######################
 
@@ -122,7 +147,7 @@ class RedisCluster extends Redis
         foreach ($serverList as $key => $server) {
             $host = $server[0];
             $port = $server[1];
-            $client = new ClusterClient($host, $port);
+            $client = new ClusterClient($host, $port,$this->config->getPackageMaxLength());
             $this->clientConnect($client);
             $nodeList = $this->getServerNodesList($client);
             if ($nodeList === null) {
@@ -160,6 +185,13 @@ class RedisCluster extends Redis
         return $handelClass->getData($recv);
     }
 
+    /**
+     * nodeListInit
+     * @param $nodeList
+     * @throws RedisClusterException
+     * @author Tioncico
+     * Time: 10:59
+     */
     protected function nodeListInit($nodeList)
     {
         $nodeListArr = [];
@@ -168,7 +200,10 @@ class RedisCluster extends Redis
                 $this->nodeList[$node['name']] = $node;
             } else {
                 $this->nodeList[$node['name']] = $node;
-                $this->nodeClientList[$node['name']] = new ClusterClient($node['host'], $node['port']);
+                $clusterClient = new ClusterClient($node['host'], $node['port']);
+                //尝试连接客户端
+//                $this->clientConnect($clusterClient);
+                $this->nodeClientList[$node['name']] = $clusterClient;
             }
             $nodeListArr[$node['name']] = $node;
         }
@@ -250,16 +285,17 @@ class RedisCluster extends Redis
     public function getSlotNodeId($slotId)
     {
         foreach ($this->nodeList as $key => $node) {
-            if (empty($node['slot'])) {
+            if (empty($node['slotList'])) {
                 continue;
             }
 
             if (strpos($node['flags'], 'master') === false) {
                 continue;
             }
-
-            if ($node['slot'][0] <= $slotId && $node['slot'][1] >= $slotId) {
-                return $key;
+            foreach ($node['slotList'] as $slot){
+                if ($slot[0] <= $slotId && $slot[1] >= $slotId) {
+                    return $key;
+                }
             }
         }
         return null;
@@ -630,7 +666,6 @@ class RedisCluster extends Redis
     ###################### redis集群方法 ######################
 
     ###################### redis集群兼容方法 ######################
-
     public function del(...$keys): ?int
     {
         $handelClass = new Del($this);
@@ -820,15 +855,13 @@ class RedisCluster extends Redis
         if ($result->getStatus() === $result::STATUS_TIMEOUT) {
             //节点断线处理
             $this->clientDisconnect($client);
-            $this->lastSocketErrno = $client->socketErrno();
-            $this->lastSocketError = $client->socketError();
-            return false;
+            throw new RedisClusterException($this->lastSocketError, $this->lastSocketErrno);
         }
 
         if ($result->getStatus() == $result::STATUS_ERR) {
             $this->setErrorMsg($result->getMsg());
             $this->setErrorType($result->getErrorType());
-            throw new RedisClusterException($result->getMsg(),$result->getErrorType());
+            throw new RedisClusterException($result->getMsg());
         }
         return $result;
     }

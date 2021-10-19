@@ -18,7 +18,7 @@ class Request extends ServerRequest
 {
     private $request;
 
-    function __construct(\swoole_http_request $request = null)
+    function __construct(\Swoole\Http\Request $request = null)
     {
         if($request){
             $this->request = $request;
@@ -40,7 +40,7 @@ class Request extends ServerRequest
 
     function getRequestParam(...$key)
     {
-        $data = array_merge($this->getParsedBody(),$this->getQueryParams());;
+        $data = $this->getParsedBody() + $this->getQueryParams();
         if(empty($key)){
             return $data;
         }else{
@@ -73,7 +73,7 @@ class Request extends ServerRequest
             $host = $this->request->header['host'];
             $host = explode(":",$host);
             $realHost = $host[0];
-            $port = isset($host[1]) ? $host[1] : 80;
+            $port = isset($host[1]) ? $host[1] : null;
         }else{
             $realHost = '127.0.0.1';
             $port = $this->request->server['server_port'];
@@ -96,14 +96,25 @@ class Request extends ServerRequest
         if(isset($this->request->files)){
             $normalized = array();
             foreach($this->request->files as $key => $value){
-                if(is_array($value) && !isset($value['tmp_name'])){
+                //如果是二维数组文件
+                if(is_array($value) && empty($value['tmp_name'])){
                     $normalized[$key] = [];
                     foreach($value as $file){
-                        $normalized[$key][] = $this->initFile($file);
+                        if (empty($file['tmp_name'])){
+                            continue;
+                        }
+                        $file = $this->initFile($file);
+                        if($file){
+                            $normalized[$key][] = $file;
+                        }
                     }
                     continue;
+                }else{
+                    $file = $this->initFile($value);
+                    if($file){
+                        $normalized[$key] = $file;
+                    }
                 }
-                $normalized[$key] = $this->initFile($value);
             }
             return $normalized;
         }else{
@@ -113,6 +124,9 @@ class Request extends ServerRequest
 
     private function initFile(array $file)
     {
+        if(empty($file['tmp_name'])){
+            return null;
+        }
         return new UploadFile(
             $file['tmp_name'],
             (int) $file['size'],
@@ -124,29 +138,28 @@ class Request extends ServerRequest
 
     private function initCookie()
     {
-        return isset($this->request->cookie) ? $this->request->cookie : array();
+        return isset($this->request->cookie) ? $this->request->cookie : [];
     }
 
     private function initPost()
     {
-        return isset($this->request->post) ? $this->request->post : array();
+        return isset($this->request->post) ? $this->request->post : [];
     }
 
     private function initGet()
     {
-        return isset($this->request->get) ? $this->request->get : array();
+        return isset($this->request->get) ? $this->request->get : [];
     }
 
     final public function __toString():string
     {
-        // TODO: Implement __toString() method.
         return Utility::toString($this);
     }
 
     public function __destruct()
     {
-        // TODO: Implement __destruct() method.
         $this->getBody()->close();
+        $this->request = null;
     }
 
 }

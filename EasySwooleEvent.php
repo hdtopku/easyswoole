@@ -4,6 +4,7 @@ namespace EasySwoole\EasySwoole;
 
 
 use App\Process\HotReload;
+use EasySwoole\Component\Context\Exception\ModifyError;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
 use EasySwoole\Http\Message\Status;
@@ -12,6 +13,7 @@ use EasySwoole\Http\Response;
 use EasySwoole\ORM\Db\Config;
 use EasySwoole\ORM\Db\Connection;
 use EasySwoole\ORM\DbManager;
+use EasySwoole\Pool\Exception\Exception;
 use EasySwoole\Whoops\Handler\CallbackHandler;
 use EasySwoole\Whoops\Handler\PrettyPageHandler;
 use EasySwoole\Whoops\Run;
@@ -23,12 +25,15 @@ class EasySwooleEvent implements Event
     {
         // TODO: Implement initialize() method.
         date_default_timezone_set('Asia/Shanghai');
-        $whoops = new Run();
-        $whoops->pushHandler(new PrettyPageHandler);  // 输出一个漂亮的页面
-        $whoops->pushHandler(new CallbackHandler(function ($exception, $inspector, $run, $handle) {
-            // 可以推进多个Handle 支持回调做更多后续处理
-        }));
-        $whoops->register();
+        try {
+            $whoops = new Run();
+            $whoops->pushHandler(new PrettyPageHandler);  // 输出一个漂亮的页面
+            $whoops->pushHandler(new CallbackHandler(function ($exception, $inspector, $run, $handle) {
+                // 可以推进多个Handle 支持回调做更多后续处理
+            }));
+            $whoops->register();
+        } catch (\Exception $e) {
+        }
     }
 
     public static function mainServerCreate(EventRegister $register)
@@ -45,45 +50,25 @@ class EasySwooleEvent implements Event
         $config->setGetObjectTimeout(3.0); //设置获取连接池对象超时时间
         $config->setIntervalCheckTime(60 * 1000); //设置检测连接存活执行回收和创建的周期
         $config->setMaxIdleTime(15); //连接池对象最大闲置时间(秒)
-        $config->setMaxObjectNum(20); //设置最大连接池存在连接对象数量
-        $config->setMinObjectNum(5); //设置最小连接池存在连接对象数量
+        try {
+            $config->setMaxObjectNum(20);
+            //设置最大连接池存在连接对象数量
+            $config->setMinObjectNum(5); //设置最小连接池存在连接对象数量
+        } catch (Exception $e) {
+        }
 
-//        DbManager::getInstance()->addConnection(new Connection($config), 'test');
-        $config->setDatabase('applemusic');
+        $config->setDatabase('gomall');
         DbManager::getInstance()->addConnection(new Connection($config));
-//        $queryBuild = new QueryBuilder();
-//        $queryBuild->raw("show tables");
-//        $data = DbManager::getInstance()->query($queryBuild, $raw = true, $connectionName = 'default');
-//        var_dump($data);
         Run::attachTemplateRender(ServerManager::getInstance()->getSwooleServer());
     }
 
     public static function onRequest(Request $request, Response $response): bool
     {
         //拦截请求
-        Run::attachRequest($request, $response);
-
-//        $param = $request->getRequestParam(); //接收请求参数
-//        if($request->getHeader('content-type')[0]=='application/json'){ //根据内容类型来转换参数
-//            $json = $request->getBody()->__toString();
-//            $json =$json?json_decode($json,1):[];
-//            var_dump($json);
-//            $request->getRequestParam()->add($json);
-////            $param = array_merge($json,$param);
-//        }
-//        var_dump($param);
-//        var_dump($request->getRequestParam());
-
-//        $origin = $request->getHeader("origin");
-//        if ($origin) {
-//            //设置允许的来源数组
-//            $referee = ["http://localhost:8080", "http://0.0.0.0:8080"];
-//            //判断来源进行过滤
-//            if (!in_array($origin[0], $referee)) {
-//                return false;
-//            }
-//        }
-//        var_dump($origin);
+        try {
+            Run::attachRequest($request, $response);
+        } catch (ModifyError $e) {
+        }
         $response->withHeader('Access-Control-Allow-Origin', '*');
         $response->withHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, OPTIONS');
         $response->withHeader('Access-Control-Allow-Credentials', 'true');

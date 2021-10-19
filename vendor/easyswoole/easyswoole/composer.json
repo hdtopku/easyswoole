@@ -19,15 +19,19 @@
     "require": {
         "php": ">=7.1.0",
         "ext-swoole": ">=4.4.4",
+        "ext-json": "*",
         "easyswoole/component": "^2.0",
         "easyswoole/spl": "^1.0",
-        "easyswoole/http": "^1.0",
+        "easyswoole/http-annotation": "^2.0",
         "easyswoole/utility": "^1.0",
-        "jeremeamia/superclosure": "^2.4",
         "easyswoole/trigger": "^1.0",
         "dragonmantank/cron-expression": "^2.2",
         "easyswoole/config": "^1.0",
-        "easyswoole/task": "^1.0"
+        "easyswoole/socket": "^1.1",
+        "easyswoole/task": "^1.1",
+        "easyswoole/command": "^1.1",
+        "easyswoole/bridge": "^1.0",
+        "easyswoole/phpunit": "^1.1"
     },
     "autoload": {
         "psr-4": {
@@ -42,7 +46,6 @@
         }
     },
     "require-dev": {
-        "easyswoole/phpunit": "^1.0",
         "easyswoole/swoole-ide-helper": "^1.2"
     },
     "bin": [

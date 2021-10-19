@@ -9,6 +9,8 @@
 namespace EasySwoole\Http\Message;
 
 
+use EasySwoole\Http\Exception\FileException;
+use EasySwoole\Utility\File;
 use Psr\Http\Message\UploadedFileInterface;
 
 class UploadFile implements UploadedFileInterface
@@ -19,6 +21,7 @@ class UploadFile implements UploadedFileInterface
     private $error;
     private $clientFileName;
     private $clientMediaType;
+
     function __construct( $tempName,$size, $errorStatus, $clientFilename = null, $clientMediaType = null)
     {
         $this->tempName = $tempName;
@@ -29,44 +32,63 @@ class UploadFile implements UploadedFileInterface
         $this->clientMediaType = $clientMediaType;
     }
 
-    public function getTempName() {
-        // TODO: Implement getTempName() method.
+    public function getTempName()
+    {
         return $this->tempName;
     }
 
     public function getStream()
     {
-        // TODO: Implement getStream() method.
         return $this->stream;
     }
 
     public function moveTo($targetPath)
     {
-        // TODO: Implement moveTo() method.
-        return file_put_contents($targetPath,$this->stream) ? true :false;
+        if (!(is_string($targetPath) && false === empty($targetPath))) {
+            throw new FileException('Please provide a valid path');
+        }
+
+        if ($this->size <= 0) {
+            throw new FileException('Unable to retrieve stream');
+        }
+
+        $dir = dirname($targetPath);
+        if (!File::createDirectory($dir)) {
+            throw new FileException(sprintf('Directory "%s" was not created', $dir));
+        }
+
+        $movedSize = file_put_contents($targetPath,$this->stream);
+        if (!$movedSize) {
+            throw new FileException(sprintf('Uploaded file could not be move to %s', $dir));
+        }
+
+        if ($movedSize !== $this->size) {
+            throw new FileException(sprintf('File upload specified directory(%s) interrupted', $dir));
+        }
     }
 
     public function getSize()
     {
-        // TODO: Implement getSize() method.
         return $this->size;
     }
 
     public function getError()
     {
-        // TODO: Implement getError() method.
         return $this->error;
     }
 
     public function getClientFilename()
     {
-        // TODO: Implement getClientFilename() method.
         return $this->clientFileName;
     }
 
     public function getClientMediaType()
     {
-        // TODO: Implement getClientMediaType() method.
         return $this->clientMediaType;
+    }
+
+    public function __destruct()
+    {
+        $this->stream->close();
     }
 }

@@ -27,9 +27,12 @@ abstract class AbstractUnixProcess extends AbstractProcess
             unlink($this->getConfig()->getSocketFile());
         }
         $socketServer = new Socket(AF_UNIX,SOCK_STREAM,0);
-        $socketServer->bind($this->getConfig()->getSocketFile());
+        $socketServer->setOption(SOL_SOCKET,SO_LINGER,$this->getConfig()->getLinger());
+        if(!$socketServer->bind($this->getConfig()->getSocketFile())){
+            throw new Exception(static::class.' bind '.$this->getConfig()->getSocketFile(). ' fail case '.$socketServer->errMsg);
+        }
         if(!$socketServer->listen(2048)){
-            throw new Exception('listen '.$this->getConfig()->getSocketFile(). ' fail at class '.static::class);
+            throw new Exception(static::class.' listen '.$this->getConfig()->getSocketFile(). ' fail case '.$socketServer->errMsg);
         }
         while (1){
             $client = $socketServer->accept(-1);

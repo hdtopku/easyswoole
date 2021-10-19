@@ -59,41 +59,33 @@ class SplArray extends \ArrayObject
         }
     }
 
-    function get($path)
+    function get($key = null, $default = null,$target = null)
     {
-        $paths = explode(".", $path);
-        $data = $this->getArrayCopy();
-        while ($key = array_shift($paths)) {
-            if (isset($data[$key])) {
-                $data = $data[$key];
+        if($target == null){
+            $target = $this->getArrayCopy();
+        }
+        if (is_null($key)) {
+            return $target;
+        }
+        $key = is_array($key) ? $key : explode('.', is_int($key) ? (string)$key : $key);
+        while (!is_null($segment = array_shift($key))) {
+            if ((is_array($target) || $target instanceof \Traversable )&& isset($target[$segment])) {
+                $target = $target[$segment];
+            } elseif (is_object($target) && isset($target->{$segment})) {
+                $target = $target->{$segment};
             } else {
-                if ($key == '*') {
-                    $temp = [];
-                    if (is_array($data)) {
-                        if (!empty($paths)) {
-                            $path = implode("/", $paths);
-                        } else {
-                            $path = null;
-                        }
-                        foreach ($data as $key => $datum) {
-                            if (is_array($datum)) {
-                                $ctemp = (new SplArray($datum))->get($path);
-                                if ($ctemp !== null) {
-                                    $temp[][$path] = $ctemp;
-                                }
-                            } else if ($datum !== null) {
-                                $temp[$key] = $datum;
-                            }
-
-                        }
+                if ($segment === '*') {
+                    $data = [];
+                    foreach ($target as $item) {
+                        $data[] = self::get($key, $default,$item);
                     }
-                    return $temp;
+                    return $data;
                 } else {
-                    return null;
+                    return $default;
                 }
             }
         }
-        return $data;
+        return $target;
     }
 
     public function delete($key): void
@@ -134,9 +126,9 @@ class SplArray extends \ArrayObject
      * 按照键值升序
      * @return SplArray
      */
-    public function asort(): SplArray
+    public function asort($flags = SORT_REGULAR): SplArray
     {
-        parent::asort();
+        parent::asort($flags);
         return $this;
     }
 
@@ -144,9 +136,9 @@ class SplArray extends \ArrayObject
      * 按照键升序
      * @return SplArray
      */
-    public function ksort(): SplArray
+    public function ksort($flags = SORT_REGULAR): SplArray
     {
-        parent::ksort();
+        parent::ksort($flags);
         return $this;
     }
 
@@ -256,7 +248,7 @@ class SplArray extends \ArrayObject
         ]
     ]);
      */
-    public function toXML($CD_DATA = false, $rootName = 'xml', $encoding = 'UTF-8')
+    public function toXML($CD_DATA = false, $rootName = 'xml', $encoding = 'UTF-8', $item = 'item')
     {
         $data = $this->getArrayCopy();
         if ($CD_DATA) {
@@ -275,13 +267,13 @@ class SplArray extends \ArrayObject
         } else {
             $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="' . $encoding . '" ?>' . "<{$rootName} ></{$rootName}>");
         }
-        $parser = function ($xml, $data) use (&$parser, $CD_DATA) {
+        $parser = function ($xml, $data) use (&$parser, $CD_DATA, $item) {
             foreach ($data as $k => $v) {
                 if (is_array($v)) {
                     if (!is_numeric($k)) {
                         $ch = $xml->addChild($k);
                     } else {
-                        $ch = $xml->addChild(substr($xml->getName(), 0, -1));
+                        $ch = $xml->addChild($item);
                     }
                     $parser($ch, $v);
                 } else {

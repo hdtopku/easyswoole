@@ -9,48 +9,60 @@
 namespace EasySwoole\EasySwoole\Command;
 
 
+use EasySwoole\Command\AbstractInterface\CallerInterface;
+use EasySwoole\Command\AbstractInterface\ResultInterface;
+use EasySwoole\Command\CommandManager;
+use EasySwoole\Command\Result;
 use EasySwoole\Component\Singleton;
-use EasySwoole\EasySwoole\Command\DefaultCommand\Help;
+use EasySwoole\EasySwoole\Command\DefaultCommand\Crontab;
 use EasySwoole\EasySwoole\Command\DefaultCommand\Install;
-use EasySwoole\EasySwoole\Command\DefaultCommand\PhpUnit;
-use EasySwoole\EasySwoole\Command\DefaultCommand\Reload;
-use EasySwoole\EasySwoole\Command\DefaultCommand\Restart;
-use EasySwoole\EasySwoole\Command\DefaultCommand\Start;
-use EasySwoole\EasySwoole\Command\DefaultCommand\Stop;
-use EasySwoole\EasySwoole\Command\DefaultCommand\Config;
-use EasySwoole\EasySwoole\Core;
+use EasySwoole\EasySwoole\Command\DefaultCommand\Process;
+use EasySwoole\EasySwoole\Command\DefaultCommand\Server;
+use EasySwoole\EasySwoole\Command\DefaultCommand\Task;
+use EasySwoole\HttpAnnotation\Utility\DocCommand;
+use EasySwoole\Phpunit\PhpunitCommand;
+
 
 class CommandRunner
 {
     use Singleton;
 
-    function __construct()
+    public function __construct()
     {
-        CommandContainer::getInstance()->set(new Help());
-        CommandContainer::getInstance()->set(new Install());
-        CommandContainer::getInstance()->set(new Start());
-        CommandContainer::getInstance()->set(new Stop());
-        CommandContainer::getInstance()->set(new Reload());
-        CommandContainer::getInstance()->set(new PhpUnit());
-        CommandContainer::getInstance()->set(new Restart());
-        CommandContainer::getInstance()->set(new Config());
+        CommandManager::getInstance()->addCommand(new Install());
+        CommandManager::getInstance()->addCommand(new Task());
+        CommandManager::getInstance()->addCommand(new Crontab());
+        CommandManager::getInstance()->addCommand(new Process());
+        CommandManager::getInstance()->addCommand(new Server());
+        CommandManager::getInstance()->addCommand(new PhpunitCommand());
+        //预防日后注解库DocCommand有变动影响到主库
+        if (class_exists(DocCommand::class)) {
+            CommandManager::getInstance()->addCommand(new DocCommand());
+        }
+
+        if (class_exists(PhpunitCommand::class)) {
+            CommandManager::getInstance()->addCommand(new PhpunitCommand());
+        }
     }
 
-    function run(array $args):?string
+    private $beforeCommand;
+
+    public function setBeforeCommand(callable $before)
     {
-        $command = array_shift($args);
-        if(empty($command)){
-            $command = 'help';
-        }else if($command != 'install'){
-            //预先加载配置
-            if(in_array('produce',$args)){
-                Core::getInstance()->setIsDev(false);
-            }
-            Core::getInstance()->initialize();
+        $this->beforeCommand = $before;
+    }
+
+    public function run(CallerInterface $caller): ResultInterface
+    {
+        if (is_callable($this->beforeCommand)) {
+            call_user_func($this->beforeCommand, $caller);
         }
-        if(!CommandContainer::getInstance()->get($command)){
-            $command = 'help';
-        }
-        return CommandContainer::getInstance()->hook($command,$args);
+        Utility::opCacheClear();
+
+        $msg = CommandManager::getInstance()->run($caller);
+
+        $result = new Result();
+        $result->setMsg($msg);
+        return $result;
     }
 }

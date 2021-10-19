@@ -1,118 +1,59 @@
 <?php
+/**
+ * @author gaobinzhan <gaobinzhan@gmail.com>
+ */
 
 
 namespace EasySwoole\EasySwoole\Test;
 
 
+use EasySwoole\Config\AbstractConfig;
+use EasySwoole\Config\TableConfig;
 use EasySwoole\EasySwoole\Config;
-use EasySwoole\EasySwoole\Test\Config\TestConfig1;
 use PHPUnit\Framework\TestCase;
 
 class ConfigTest extends TestCase
 {
-    private $time;
-    private $array;
-
-    function runTest()
+    public function testStorageHandler()
     {
-        $this->time = time();
-        $this->array = [
-            'a'=>1,
-            'b'=>[
-                'b1'=>'bv',
-                'b2'=>'bb'
-            ]
-        ];
-        return parent::runTest();
+        $config = new TableConfig();
+        $this->assertInstanceOf(AbstractConfig::class, Config::getInstance()->storageHandler($config));
     }
 
-    function testSet()
+    public function testGetConf()
     {
-
-        $this->assertEquals(true,Config::getInstance()->setConf('key',$this->time));
-        $this->assertEquals(true,Config::getInstance()->setConf('array',$this->array));
+        $conf = Config::getInstance()->getConf();
+        $this->assertEmpty($conf);
     }
 
-    function testGet()
+    public function testSetConf()
     {
-        $this->assertEquals($this->time,Config::getInstance()->getConf('key'));
-        $this->assertEquals($this->array,Config::getInstance()->getConf('array'));
+        $bool = Config::getInstance()->setConf('test', 'easyswoole');
+        $this->assertTrue($bool);
+        $this->assertEquals('easyswoole', Config::getInstance()->getConf('test'));
     }
 
-    public function testStorageHandler() {
-        $config = Config::getInstance()->storageHandler(new TestConfig1());
-        $this->assertEquals(
-            [
-                'name' => 'easyswoole',
-                'action' => 'getConf'
-            ],
-            $config->getConf()
-        );
+    public function testLoad()
+    {
+        $bool = Config::getInstance()->load(['test' => 'easyswoole']);
+        $this->assertTrue($bool);
+
+        $conf = Config::getInstance()->getConf();
+        $this->assertEquals(['test' => 'easyswoole'], $conf);
     }
 
-    public function testLoad() {
-        $config = Config::getInstance(new TestConfig1());
-        $config->load([
-            'name' => 'easyswoole',
-            'action' => 'load'
-        ]);
-        $this->assertEquals([
-            'name' => 'easyswoole',
-            'action' => 'load'
-        ], $config->getConf());
+    public function testMerge()
+    {
+        $bool = Config::getInstance()->merge(['test' => 'easyswoole']);
+        $this->assertTrue($bool);
+
+        $conf = Config::getInstance()->getConf();
+        $this->assertEquals(['test' => 'easyswoole'], $conf);
     }
 
-    public function testMerge() {
-        $config = Config::getInstance(new TestConfig1());
-        $config->merge([
-            'name1' => 'es',
-            'action1' => 'merge'
-        ]);
-        $this->assertEquals([
-            'name' => 'easyswoole',
-            'action' => 'load',
-            'name1' => 'es',
-            'action1' => 'merge'
-        ], $config->getConf());
+    public function testClear()
+    {
+        $bool = Config::getInstance()->clear();
+        $this->assertTrue($bool);
     }
-
-    public function testLoadFile() {
-        $config = Config::getInstance(new TestConfig1());
-        $config->load([
-            'name' => 'easyswoole'
-        ]);
-        // 改成本机路径
-        $config->loadFile('xx/TestConfig2.php');
-        $this->assertEquals(
-            [
-                'name' => 'easyswoole',
-                'testconfig2' => [
-                    'alias' => 'es'
-                ]
-            ],
-            $config->getConf()
-        );
-
-        // TODO: merge
-
-    }
-
-    public function testLoadEnv() {
-        $config = Config::getInstance(new TestConfig1());
-        // 改成本机路径
-        $config->loadEnv('xx/TestConfig2.php');
-        $this->assertEquals(
-            [
-                'alias' => 'es'
-            ],
-            $config->getConf()
-        );
-    }
-
-    public function testClear() {
-        $config = Config::getInstance(new TestConfig1());
-        $config->clear();
-        $this->assertEmpty($config->getConf());
-    }
-
 }

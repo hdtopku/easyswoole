@@ -42,6 +42,7 @@ class QueryBuilder
     private $_tableName = '';
     private $_forUpdate = false;
     private $_lockInShareMode = false;
+    private $_lockOption = '';
     private $_subQueryAlias = '';
     private $_limit = null;
     private $_field = '*';
@@ -292,15 +293,20 @@ class QueryBuilder
     /**
      * SELECT FOR UPDATE锁定(InnoDb)
      * @param bool $isLock
-     * @return QueryBuilder
+     * @param string|null $option NOWAIT,WAIT 5,SKIP LOCKED
+     * @return $this
      * @throws Exception
      */
-    public function selectForUpdate($isLock = true)
+    public function selectForUpdate($isLock = true, string $option = null)
     {
         if ($isLock) {
             $this->setQueryOption(['FOR UPDATE']);
+            if ($option) {
+                $this->_lockOption = $option;
+            }
         } else {
             unset($this->_queryOptions['FOR UPDATE']);
+            $this->_lockOption = false;
         }
         return $this;
     }
@@ -401,6 +407,16 @@ class QueryBuilder
     }
 
     /**
+     * @param string $option NOWAIT,WAIT 5,SKIP LOCKED
+     * @return $this
+     */
+    public function setLockOption(string $option)
+    {
+        $this->_lockOption = $option;
+        return $this;
+    }
+
+    /**
      * 设置表前缀
      * @param string $prefix
      * @return $this
@@ -437,13 +453,10 @@ class QueryBuilder
             $columns = $this->_field;
         }
         $column = is_array($columns) ? implode(', ', $columns) : $columns;
-        if (strpos($tableName, '.') === false) {
-            $this->_tableName = $this->prefix . $tableName;
-        } else {
-            $this->_tableName = $tableName;
-        }
+
+        $this->_tableName = $tableName;
         $this->_query = 'SELECT ' . implode(' ', $this->_queryOptions) . ' ' .
-            $column . " FROM " . $this->_tableName;
+            $column . " FROM " . $this->_paserTableName();
         if($numRows == null){
             $numRows = $this->_limit;
         }
@@ -460,6 +473,9 @@ class QueryBuilder
      */
     public function getOne($tableName, $columns = '*'): ?QueryBuilder
     {
+        if ($columns === '*'){
+            $columns = $this->_field;
+        }
         return $this->get($tableName, 1, $columns);
     }
 
@@ -511,20 +527,19 @@ class QueryBuilder
         $this->reset();
         return $this;
     }
-
+    //多行插入为INSERT INTO ... VALUES (...) , (...)
     public function insertAll($tableName, $insertData, $option = [])
     {
         $allowFields = $option['field'] ?? [];
-
-        foreach ($insertData as $data){
-            // 过滤掉不允许的字段
-            if (!empty($allowFields)) {
-                foreach ($data as $data_k => $data_v){
-                    if (!in_array($data_v, $allowFields)){
-                        unset($data[$data_k]);
-                    }
-                }
-            }
+		// 过滤掉不允许的字段
+		if (!empty($allowFields)) {
+			foreach ($insertData as $key => $data){
+				foreach ($data as $data_k => $data_v){
+					if (!in_array($data_k, $allowFields)){
+						unset($insertData[$key][$data_k]);
+					}
+				}
+			}
         }
 
         $this->_buildInsert($tableName, $insertData, isset($option['replace']) ? 'REPLACE' : 'INSERT');
@@ -570,7 +585,9 @@ class QueryBuilder
         if ($this->_isSubQuery) {
             return;
         }
-        $this->_query = "UPDATE " . $this->prefix . $tableName;
+
+        $this->_tableName = $tableName;
+        $this->_query = "UPDATE " . $this->_paserTableName();
         if (is_array($this->_field)) {
             foreach ($tableData as $key => $val) {
                 if (!in_array($key, $this->_field)) {
@@ -584,6 +601,30 @@ class QueryBuilder
     }
 
     /**
+     * 插入多行数据
+     * @param string $tableName 插入的表名称
+     * @param array $multiInsertData 需要插入的数据
+     * @param array|null $dataKeys 插入数据对应的字段名
+     * @return array|bool
+     */
+    public function insertMulti($tableName, array $multiInsertData, array $dataKeys = null)
+    {
+        $ids = array();
+        foreach ($multiInsertData as $insertData) {
+            if ($dataKeys !== null) {
+                // apply column-names if given, else assume they're already given in the data
+                $insertData = array_combine($dataKeys, $insertData);
+            }
+            $id = $this->insert($tableName, $insertData);
+            if (!$id) {
+                return false;
+            }
+            $ids[] = $id;
+        }
+        return $ids;
+    }
+
+    /**
      * delete查询
      * @param $tableName
      * @param array|int|null $numRows
@@ -594,7 +635,8 @@ class QueryBuilder
         if ($this->_isSubQuery) {
             return;
         }
-        $table = $this->prefix . $tableName;
+        $this->_tableName = $tableName;
+        $table = $this->_paserTableName();
         if (count($this->_join)) {
             $this->_query = "DELETE " . preg_replace('/.* (.*)/', '$1', $table) . " FROM " . $table;
         } else {
@@ -631,6 +673,7 @@ class QueryBuilder
         $this->_nestJoin = false;
         $this->_forUpdate = false;
         $this->_lockInShareMode = false;
+        $this->_lockOption = '';
         $this->_tableName = '';
         $this->_updateColumns = null;
         return $this;
@@ -650,28 +693,28 @@ class QueryBuilder
 
     /**
      * MysqlInc表达式
-     * @param int $num
+     * @param int|float $num
      * @return array
      * @throws Exception
      */
     public static function inc($num = 1)
     {
-        if (!is_numeric($num)) {
-            throw new Exception('Argument supplied to inc must be a number');
+        if (!is_numeric($num)||$num<=0) {
+            throw new Exception('Argument supplied to inc must be a positive number');
         }
         return array("[I]" => "+" . $num);
     }
 
     /**
      * MysqlDec表达式
-     * @param int $num
+     * @param int|float $num
      * @return array
      * @throws Exception
      */
     public static function dec($num = 1)
     {
-        if (!is_numeric($num)) {
-            throw new Exception('Argument supplied to dec must be a number');
+        if (!is_numeric($num)||$num<=0) {
+            throw new Exception('Argument supplied to dec must be a positive number');
         }
         return array("[I]" => "-" . $num);
     }
@@ -949,10 +992,10 @@ class QueryBuilder
             if ($val === null) {
                 $val = 'NULL';
             }
-            if (is_numeric($val)) {
+            if (is_int($val) || is_float($val)) {
                 $newStr .= substr($str, 0, $pos) . $val;
             } else {
-                $newStr .= substr($str, 0, $pos) . "'" . $val . "'";
+                $newStr .= substr($str, 0, $pos) . "'" . addslashes($val) . "'";
             }
 
             $str = substr($str, $pos + 1);
@@ -1018,7 +1061,8 @@ class QueryBuilder
         $this->_buildOnDuplicate($tableData);
         $this->_buildUnion();
         if ($this->_forUpdate) {
-            $this->_query .= ' FOR UPDATE';
+            $lockStr = $this->_lockOption ? ' FOR UPDATE '. $this->_lockOption : ' FOR UPDATE';
+            $this->_query .= $lockStr;
         }
         if ($this->_lockInShareMode) {
             $this->_query .= ' LOCK IN SHARE MODE';
@@ -1056,7 +1100,7 @@ class QueryBuilder
         if ($this->_union) {
             foreach ($this->_union as $unionData) {
                 list($cond, $param, $isUnionAll) = $unionData;
-                $this->_query .= 'UNION ' . ($isUnionAll ? 'ALL ' : '') . $cond;
+                $this->_query .= ' UNION ' . ($isUnionAll ? 'ALL ' : '') . $cond;
                 $this->_bindParams($param);
             }
         }
@@ -1091,7 +1135,8 @@ class QueryBuilder
         if ($this->_isSubQuery) {
             return;
         }
-        $this->_query = $operation . " " . implode(' ', $this->_queryOptions) . " INTO " . $this->prefix . $tableName;
+        $this->_tableName = $tableName;
+        $this->_query = $operation . " " . implode(' ', $this->_queryOptions) . " INTO " . $this->_paserTableName();
         $this->_buildQuery(null, $insertData);
     }
 
@@ -1229,6 +1274,18 @@ class QueryBuilder
         $this->_query .= ' ' . $operator;
         foreach ($conditions as $cond) {
             list ($concat, $varName, $operator, $val) = $cond;
+
+             if (strpos($varName, '.') !== false && $val !== 'DBNULL' && strpos($varName, '(') === false){
+                // DBNULL是纯字符串条件，也不能有()函数调用
+                $varNameArray = explode('.', $varName);
+                $varName = "`{$varNameArray[0]}`.`{$varNameArray[1]}`";
+            }else{
+                // 不是字符串条件，也没有包含()函数调用
+                if ($val !== 'DBNULL' && strpos($varName, '(') === false){
+                    $varName = "`{$varName}`";
+                }
+            }
+
             $this->_query .= " " . $concat . " " . $varName;
             switch (strtolower($operator)) {
                 case 'not in':
@@ -1278,5 +1335,26 @@ class QueryBuilder
             $this->_query .= $value . ", ";
         }
         $this->_query = rtrim($this->_query, ', ') . " ";
+    }
+
+    /**
+     * 表名构造
+     * @return string
+     */
+    private function _paserTableName()
+    {
+        if (strpos($this->_tableName, '.') === false) {
+            $this->_tableName = $this->prefix . $this->_tableName;
+        }
+
+        if (strpos($this->_tableName, '`') !== false){
+            return $this->_tableName;
+        }
+
+        if (strpos($this->_tableName, ' ') !== false){
+            return $this->_tableName;
+        }
+
+        return "`{$this->_tableName}`";
     }
 }

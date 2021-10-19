@@ -48,6 +48,7 @@ abstract class AbstractProcess
             $this->config->setEnableCoroutine($enableCoroutine);
         }
         $this->swooleProcess = new Process([$this,'__start'],$this->config->isRedirectStdinStdout(),$this->config->getPipeType(),$this->config->isEnableCoroutine());
+        Manager::getInstance()->addProcess($this,false);
     }
 
     public function getProcess():Process
@@ -86,12 +87,19 @@ abstract class AbstractProcess
 
     function __start(Process $process)
     {
-        /*
-         * swoole自定义进程协程与非协程的兼容
-         * 开一个协程，让进程推出的时候，执行清理reactor
-         */
-        Coroutine::create(function (){
-
+        $table = Manager::getInstance()->getProcessTable();
+        $table->set($process->pid,[
+            'pid'=>$process->pid,
+            'name'=>$this->config->getProcessName(),
+            'group'=>$this->config->getProcessGroup(),
+            'startUpTime'=>time(),
+            "hash"=>spl_object_hash($this->getProcess())
+        ]);
+        \Swoole\Timer::tick(1*1000,function ()use($table,$process){
+            $table->set($process->pid,[
+                'memoryUsage'=>memory_get_usage(),
+                'memoryPeakUsage'=>memory_get_peak_usage(true)
+            ]);
         });
         if(!in_array(PHP_OS,['Darwin','CYGWIN','WINNT']) && !empty($this->getProcessName())){
             $process->name($this->getProcessName());
@@ -105,31 +113,45 @@ abstract class AbstractProcess
         });
         Process::signal(SIGTERM,function ()use($process){
             swoole_event_del($process->pipe);
-            /*
-             * 清除全部定时器
-             */
-            \Swoole\Timer::clearAll();
-            Process::signal(SIGTERM, null);
-            Event::exit();
+            try{
+                $this->onSigTerm();
+            }catch (\Throwable $throwable){
+                $this->onException($throwable);
+            } finally {
+                \Swoole\Timer::clearAll();
+                Process::signal(SIGTERM, null);
+                Event::exit();
+            }
         });
-        register_shutdown_function(function () {
+        register_shutdown_function(function ()use($table,$process) {
+            if($table){
+                $table->del($process->pid);
+            }
             $schedule = new Scheduler();
             $schedule->add(function (){
-                try{
-                    $this->onShutDown();
-                }catch (\Throwable $throwable){
-                    $this->onException($throwable);
-                }
+                $channel = new Coroutine\Channel(1);
+                Coroutine::create(function ()use($channel){
+                    try{
+                        $this->onShutDown();
+                    }catch (\Throwable $throwable){
+                        $this->onException($throwable);
+                    }
+                    $channel->push(1);
+                });
+                $channel->pop($this->config->getMaxExitWaitTime());
                 \Swoole\Timer::clearAll();
+                Event::exit();
             });
             $schedule->start();
+            \Swoole\Timer::clearAll();
+            Event::exit();
         });
-
         try{
             $this->run($this->config->getArg());
         }catch (\Throwable $throwable){
             $this->onException($throwable);
         }
+        Event::wait();
     }
 
     public function getArg()
@@ -142,7 +164,7 @@ abstract class AbstractProcess
         return $this->config->getProcessName();
     }
 
-    protected function getConfig():Config
+    public function getConfig():Config
     {
         return $this->config;
     }
@@ -154,6 +176,11 @@ abstract class AbstractProcess
     protected abstract function run($arg);
 
     protected function onShutDown()
+    {
+
+    }
+
+    protected function onSigTerm()
     {
 
     }

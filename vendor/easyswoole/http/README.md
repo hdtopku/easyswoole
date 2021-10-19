@@ -2,9 +2,13 @@
 
 一个轻量级的HTTP Dispatch组件
 ## Server Script
-```
+```php
 namespace App\HttpController;
 use EasySwoole\Http\AbstractInterface\Controller;
+use EasySwoole\Http\Dispatcher;
+use EasySwoole\Http\Request;
+use EasySwoole\Http\Response;
+use Swoole\Http\Server;
 
 require_once 'vendor/autoload.php';
 
@@ -16,114 +20,96 @@ class Index extends Controller
     {
         // TODO: Implement index() method
         $this->response()->write('hello world');
-        $this->response()->setCookie('a','a',time()+3600);
-    }
-
-    function testSession()
-    {
-        $this->session()->start();
-        $this->session()->set('a',time());
-    }
-
-    function testSession2()
-    {
-        $this->session()->start();
-        $this->response()->write($this->session()->get('a'));
-    }
-
-    function testException()
-    {
-        new NoneClass();
-    }
-
-    protected function onException(\Throwable $throwable): void
-    {
-        $this->response()->write($throwable->getMessage());
-    }
-
-    protected function gc()
-    {
-        parent::gc();
-        var_dump('class :'.static::class.' is recycle to pool');
     }
 }
 
 
-$http = new \swoole_http_server("0.0.0.0", 9501);
-$http->set([
-    'worker_num'=>1
-]);
+$dispatcher = new Dispatcher();
+$dispatcher->setNamespacePrefix('App\HttpController');
+$http = new Server("127.0.0.1", 9501);
 
-$http->on("start", function ($server) {
-    echo "Swoole http server is started at http://127.0.0.1:9501\n";
-});
-
-$service = new \EasySwoole\Http\WebService();
-$service->setExceptionHandler(function (\Throwable $throwable,\EasySwoole\Http\Request $request,\EasySwoole\Http\Response $response){
-    $response->write('error:'.$throwable->getMessage());
-});
-
-$http->on("request", function ($request, $response)use($service) {
-    $req = new \EasySwoole\Http\Request($request);
-    $service->onRequest($req,new \EasySwoole\Http\Response($response));
+$http->on("request", function ($request, $response) use($dispatcher){
+    $request_psr = new Request($request);
+    $response_psr = new Response($response);
+    $dispatcher->dispatch($request_psr, $response_psr);
+    $response_psr->__response();
 });
 
 $http->start();
 ```
 
-
-## test
+## 全局参数Hook
 ```
-use EasySwoole\Http\Annotation\Method;
+namespace App\HttpController;
+use EasySwoole\Http\AbstractInterface\Controller;
+use EasySwoole\Http\Dispatcher;
+use EasySwoole\Http\GlobalParam\Hook;
+use EasySwoole\Http\Request;
+use EasySwoole\Http\Response;
+use EasySwoole\Session\FileSession;
+use EasySwoole\Session\Session;
+use Swoole\Http\Server;
 
-class Test extends \EasySwoole\Http\AbstractInterface\AnnotationController
+require_once 'vendor/autoload.php';
+
+
+class Index extends Controller
 {
-    /**
-     * @\EasySwoole\Http\Annotation\Context(key="MYSQL")
-     */
-    public $mysql;
-
-    /**
-     * @var
-     * @\EasySwoole\Http\Annotation\DI(key="IOC")
-     */
-    public $IOC;
 
     function index()
     {
-        // TODO: Implement index() method.
+        $this->response()->write('hello world');
     }
 
-    /**
-     * @Method(allow={GET,POST})
-     * @\EasySwoole\Http\Annotation\Param(name="test",from={POST})
-     * @\EasySwoole\Http\Annotation\Param(name="msg",alias="消息字段",lengthMax="20|消息过长",required="消息不能为空")
-     * @\EasySwoole\Http\Annotation\Param(name="type",inArray="{1,2,3,4}")
-     */
-    function fuck($test,$msg)
+    function get()
     {
-        var_dump($test,$msg);
+        var_dump($_GET['a']);
     }
 
-    protected function onException(\Throwable $throwable): void
+    function session()
     {
-        if($throwable instanceof \EasySwoole\Http\Exception\ParamAnnotationValidateError){
-            var_dump($throwable->getValidate()->getError()->getErrorRuleMsg());
+        if(isset($_SESSION['isNew'])){
+            $this->response()->write('your are old user');
         }else{
-            var_dump($throwable->getMessage());
+            $_SESSION['isNew'] = 1;
+            $this->response()->write('your are new user');
         }
     }
 
+    function session2()
+    {
+        $this->writeJson(200,$_SESSION->toArray());
+    }
 }
 
-$request = new \EasySwoole\Http\Request();
-$request->withQueryParams([
-    'msg'=>"this is msg",
-    'type'=>1
-]);
 
-$request->withMethod("get");
-$response = new \EasySwoole\Http\Response();
-$test = new Test();
-$test->__hook('fuck',$request,$response);
+$dispatcher = new Dispatcher();
+$dispatcher->setNamespacePrefix('App\HttpController');
+$http = new Server("127.0.0.1", 9501);
+$hook = new Hook();
+$session = new Session(new FileSession(__DIR__.'/session'));
+$hook->enableSession($session);
+$hook->register();
+$http->on("request", function ($request, $response) use($dispatcher,$hook){
+    $request_psr = new Request($request);
+    $response_psr = new Response($response);
+    $hook->onRequest($request_psr,$response_psr);
+    $dispatcher->dispatch($request_psr, $response_psr);
+    $response_psr->__response();
+});
+
+$http->start();
 ```
+
+### 说明
+- 如果没有```enableSession```，那么```$_SESSION```则不可用。
+- ```$_SESSION```目前仅支持如下操作：
+    - isset
+    - $_SESSION['name'] = value
+    - unset($_SESSION['name']);
+    - $_SESSION->toArray() 
+    _ $_SESSION->loadArray();
+
+## 动态路由匹配规则
+
+![Dispatcher](./resource/router.jpg)

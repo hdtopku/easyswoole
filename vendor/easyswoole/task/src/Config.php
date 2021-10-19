@@ -5,6 +5,7 @@ namespace EasySwoole\Task;
 
 
 use EasySwoole\Spl\SplBean;
+use EasySwoole\Task\AbstractInterface\TaskQueueInterface;
 
 class Config extends SplBean
 {
@@ -12,11 +13,32 @@ class Config extends SplBean
     protected $workerNum = 3;
     protected $serverName = 'EasySwoole';
     protected $maxRunningNum = 128;
+    protected $maxPackageSize = 1024 * 1024 * 2;//2M
     /**
      * @var float
      */
-    protected $timeout = 30;
+    protected $timeout = 5.0;
     protected $onException;
+    /**
+     * @var TaskQueueInterface
+     */
+    protected $taskQueue;
+
+    /**
+     * @return float|int
+     */
+    public function getMaxPackageSize()
+    {
+        return $this->maxPackageSize;
+    }
+
+    /**
+     * @param float|int $maxPackageSize
+     */
+    public function setMaxPackageSize($maxPackageSize): void
+    {
+        $this->maxPackageSize = $maxPackageSize;
+    }
 
     /**
      * @return mixed
@@ -112,6 +134,22 @@ class Config extends SplBean
     public function setOnException($onException): void
     {
         $this->onException = $onException;
+    }
+
+    /**
+     * @return TaskQueueInterface
+     */
+    public function getTaskQueue(): ?TaskQueueInterface
+    {
+        return $this->taskQueue;
+    }
+
+    /**
+     * @param TaskQueueInterface $taskQueue
+     */
+    public function setTaskQueue(TaskQueueInterface $taskQueue): void
+    {
+        $this->taskQueue = $taskQueue;
     }
 
     protected function initialize(): void

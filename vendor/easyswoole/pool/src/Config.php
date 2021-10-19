@@ -9,11 +9,12 @@ use EasySwoole\Spl\SplBean;
 
 class Config extends SplBean
 {
-    protected $intervalCheckTime = 30*1000;
-    protected $maxIdleTime = 15;
+    protected $intervalCheckTime = 15*1000;
+    protected $maxIdleTime = 10;
     protected $maxObjectNum = 20;
     protected $minObjectNum = 5;
     protected $getObjectTimeout = 3.0;
+    protected $loadAverageTime = 0.001;
 
     protected $extraConf;
 
@@ -109,6 +110,24 @@ class Config extends SplBean
     public function getMinObjectNum(): int
     {
         return $this->minObjectNum;
+    }
+
+    /**
+     * @return float
+     */
+    public function getLoadAverageTime(): float
+    {
+        return $this->loadAverageTime;
+    }
+
+    /**
+     * @param float $loadAverageTime
+     * @return Config
+     */
+    public function setLoadAverageTime(float $loadAverageTime): Config
+    {
+        $this->loadAverageTime = $loadAverageTime;
+        return $this;
     }
 
     public function setMinObjectNum(int $minObjectNum): Config

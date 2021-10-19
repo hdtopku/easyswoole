@@ -11,7 +11,8 @@ namespace EasySwoole\EasySwoole;
 
 use EasySwoole\Component\Singleton;
 use EasySwoole\Config\AbstractConfig;
-use EasySwoole\Config\TableConfig;
+use EasySwoole\Config\SplArrayConfig;
+use EasySwoole\Utility\File;
 
 class Config
 {
@@ -22,16 +23,19 @@ class Config
     public function __construct(?AbstractConfig $config = null)
     {
         if($config == null){
-            $config = new TableConfig();
+            $config = new SplArrayConfig();
         }
         $this->conf = $config;
     }
 
-    function storageHandler(AbstractConfig $config):Config
+    function storageHandler(AbstractConfig $config = null):AbstractConfig
     {
-        $this->conf = $config;
-        return $this;
+        if($config){
+            $this->conf = $config;
+        }
+        return $this->conf;
     }
+
 
     /**
      * 获取配置项
@@ -72,34 +76,54 @@ class Config
     /**
      * 载入一个文件的配置项
      * @param string $filePath 配置文件路径
-     * @param bool   $merge    是否将内容合并入主配置
-     * @author : evalor <master@evalor.cn>
      */
-    public function loadFile($filePath, $merge = false)
+    public function loadFile($filePath,bool $merge = true):bool
     {
-        if (is_file($filePath)) {
+        if (file_exists($filePath)) {
             $confData = require_once $filePath;
-            if (is_array($confData) && !empty($confData)) {
-                $basename = strtolower(basename($filePath, '.php'));
-                if (!$merge) {
-                    $this->conf->setConf($basename,$confData);
-                } else {
+            if(is_array($confData)){
+                if($merge){
                     $this->conf->merge($confData);
+                }else{
+                    $this->conf->load($confData);
                 }
+                return true;
             }
         }
+        return false;
     }
 
-    public function loadEnv(string $file)
+    /**
+     * 载入自定义配置文件夹里的所有配置文件
+     * @param string $dirPath 配置文件夹
+     * @param bool $merge 是否将内容合并入主配置
+     */
+    public function loadDir (string $dirPath, bool $merge = true):bool
+    {
+        if(is_dir($dirPath)){
+            $fileList = File::scanDirectory($dirPath);
+            foreach ($fileList['files'] as $filePath){
+                 $this->loadFile($filePath,$merge);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public function loadEnv(string $file,bool $merge = true):bool
     {
         if(file_exists($file)){
-            $data = require $file;
+            $data = parse_ini_file($file,true);
             if(is_array($data)){
-                $this->load($data);
+                if($merge){
+                    $this->conf->merge($data);
+                }else{
+                    $this->conf->load($data);
+                }
+                return true;
             }
-        }else{
-            throw new \Exception("config file : {$file} is miss");
         }
+        return false;
     }
 
     public function clear():bool
