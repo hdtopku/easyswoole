@@ -22,10 +22,10 @@ class AM extends Controller
         $item = null;
         if (array_key_exists('link', $req)) {
             $req['link'] = trim($req['link']);
-            $item = Links::create()->get(['link' => $req['link']]);
+            $item = Links::create()->all(['link' => $req['link']]);
         }
         if (array_key_exists('id', $req)) {
-            $item = Links::create()->get($req['id']);
+            $item = Links::create()->all($req['id']);
         }
         if ($item) {
             $data['item'] = [$item];
@@ -37,12 +37,12 @@ class AM extends Controller
                 Links::create()->update($req, ['id' => $data['item'][0]['id']]);
                 $data['item'] = [Links::create()
                     ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                    ->get(['link' => $data['item'][0]['link']])];
+                    ->all(['link' => $data['item'][0]['link']])];
             } else if (array_key_exists('link', $req) && $req['link']) {
                 Links::create($req)->save();
                 $data['item'] = [Links::create()
                     ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                    ->get(['link' => $req['link']])];
+                    ->all(['link' => $req['link']])];
             } else if (array_key_exists('status', $req)
                 && ($req['status'] == 1 || $req['status'] == 2)) {
                 $count = 1;
@@ -52,11 +52,11 @@ class AM extends Controller
                     unset($req['count']);
                 }
                 while ($count > 0) {
-                    $link = Links::create()->findOne(['status' => 0]);
+                    $link = Links::create()->get(['status' => 0]);
                     if ($link) {
                         $c = Links::create()->update($req, ['id' => $link['id']]);
                         if ($c) {
-                            $link = Links::create()->get($link['id']);
+                            $link = Links::create()->all($link['id']);
                             array_push($item, $link);
                             $count--;
                         }
@@ -87,18 +87,18 @@ class AM extends Controller
             $res = Links::create()->where($where)->where('status', 0, '!=')
                 ->where('id', $item_ids, 'NOT IN')
                 ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->findAll();
+                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->all();
             $unUsed = Links::create()->where('status', 0, '=')
                 ->where('id', $item_ids, 'NOT IN')
                 ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->findAll();
+                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->all();
         } else {
             $res = Links::create()->where($where)->where('status', 0, '!=')
                 ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->findAll();
+                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->all();
             $unUsed = Links::create()->where('status', 0, '=')
                 ->join('operator', 'operator.oid=links.operator_id', 'LEFT')
-                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->findAll();
+                ->limit(1000)->order('update_time', 'DESC')->order('id', 'DESC')->all();
         }
         if ($unUsed) {
             $res = array_merge($res, $unUsed);

@@ -27,7 +27,7 @@ class RedisService extends WebService
 
     function get($key)
     {
-        return $this->get_cli()->get($key);
+        return $this->get_cli()->all($key);
     }
 
     function set($key, $val)

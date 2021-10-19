@@ -22,7 +22,7 @@ class Jetbrains extends Controller
         $req = $this->request()->getRequestParam();
         if (array_key_exists('q', $req) and $req['q']) {
             $oneMonth = date('Y-m-d H:i:s', strtotime('-1 months'));
-            $data = Idea::create()->findOne(['visit_key' => $req['q'],
+            $data = Idea::create()->get(['visit_key' => $req['q'],
                 'status' => [[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
             if ($data and $this->isValid($data)) {
                 $this->response()->write(json_encode(['errno' => '0', 'update_time' => $data['update_time'], 'count' => $data['visit_count']],
@@ -37,18 +37,18 @@ class Jetbrains extends Controller
             $key = $req['k'];
             //redis
             $oneMonth = date('Y-m-d H:i:s', strtotime('-1 months'));
-            $data = Idea::create()->findOne(
+            $data = Idea::create()->get(
                 ['visit_key' => $key, 'status' => [[0, 1], 'IN'], 'create_time' => [$oneMonth, '>=']]);
             // redis
             $redis = new RedisService();
-            $d = $redis->get('code_switch');
+            $d = $redis->all('code_switch');
             if ($d == null || $d != '1') {
                 $this->response()->write(json_encode(['errno' => '0'], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
                 return;
             }
             if ($data) {
                 if ($this->isValid($data)) {
-                    $d = $redis->get('code');
+                    $d = $redis->all('code');
                     //飞象可用
                     $data['status'] = 1;
                     $data['visit_count'] = $data['visit_count'] + 1;
@@ -86,9 +86,9 @@ class Jetbrains extends Controller
         } elseif (array_key_exists('switch', $req)) {
             // redis
             $redis = new RedisService();
-            $d = $redis->get('code_switch');
+            $d = $redis->all('code_switch');
             if ($req['switch'] == null) {
-                $d = $redis->get('code_switch');
+                $d = $redis->all('code_switch');
                 $this->response()->write(json_encode(
                         ['errno' => '0', 'data' => $d], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
                 );
@@ -123,7 +123,7 @@ class Jetbrains extends Controller
         while (true) {
             $invitecode = $this->createInvitecode();
             if (!strstr($invitecode, 'qq')) {
-                $existCode = Idea::create()->get($invitecode);
+                $existCode = Idea::create()->all($invitecode);
                 if (!$existCode) {
                     return $invitecode;
                 }
@@ -156,7 +156,7 @@ class Jetbrains extends Controller
             $redis->set('code', $req['code']);
         }
         $this->response()->write(json_encode(
-                ['errno' => '0', 'data' => $redis->get('code')], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
+                ['errno' => '0', 'data' => $redis->all('code')], JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES)
         );
     }
 
@@ -166,10 +166,10 @@ class Jetbrains extends Controller
         $data = [];
         $item = [];
         if (array_key_exists('username', $req) and $req['username']) {
-            $item = JetAccount::create()->findOne(['username' => $req['username']]);
+            $item = JetAccount::create()->get(['username' => $req['username']]);
             if (!$item and array_key_exists('password', $req) and $req['password']) {
                 JetAccount::create(['username' => $req['username'], 'password' => $req['password']])->save();
-                $item = JetAccount::create()->findOne(['username' => $req['username']]);
+                $item = JetAccount::create()->get(['username' => $req['username']]);
             } else if ($item and array_key_exists('count', $req)) {
                 $use_count = $item['use_count'];
                 $count = (int)$req['count'];
@@ -181,16 +181,16 @@ class Jetbrains extends Controller
                 if ($item['use_count'] != $use_count) {
                     JetAccount::create()->update(['use_count' => $use_count], ['username' => $item['username']]);
                 }
-                $item = JetAccount::create()->findOne(['username' => $req['username']]);
+                $item = JetAccount::create()->get(['username' => $req['username']]);
             } else if ($item and array_key_exists('status', $req)) {
                 JetAccount::create()->update(['status' => $req['status']], ['username' => $item['username']]);
-                $item = JetAccount::create()->findOne(['username' => $req['username']]);
+                $item = JetAccount::create()->get(['username' => $req['username']]);
             }
         } elseif (array_key_exists('use_count', $req) and array_key_exists('batch_count', $req)) {
             $batch_count = intval($req['batch_count']);
             if ($batch_count > 0) {
                 $jets = JetAccount::create()->where(
-                    ['use_count' => $req['use_count'], 'status' => 0])->limit($batch_count)->findAll();
+                    ['use_count' => $req['use_count'], 'status' => 0])->limit($batch_count)->all();
                 foreach ($jets as $key => $val) {
                     $is_updated = JetAccount::create()->update(['use_count' => $val['use_count'] + 1],
                         ['username' => $val['username'], 'use_count' => $val['use_count']]);
@@ -207,37 +207,37 @@ class Jetbrains extends Controller
                 ->where('status', 0)->where('use_count', $divideCount, '<')
                 ->where('username', $item['username'], '!=')
                 ->order('use_count', 'ASC')->order('update_time', 'DESC')
-                ->findAll();
+                ->all();
             $accountsMore = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '>=')
                 ->where('username', $item['username'], '!=')
                 ->order('use_count', 'ASC')->order('update_time', 'DESC')
-                ->findAll();
+                ->all();
             $accountsDel = JetAccount::create()
                 ->where('status', 1)
                 ->where('username', $item['username'], '!=')
                 ->order('status', 'ASC')->order('update_time', 'DESC')
-                ->findAll();
+                ->all();
             $accountsEffect = JetAccount::create()->where('status', -1)
                 ->where('username', $item['username'], '!=')
                 ->order('status', 'ASC')->order('update_time', 'DESC')
-                ->findAll();
+                ->all();
             $item['isItem'] = true;
         } else {
             $accounts = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '<')
                 ->order('use_count', 'ASC')->order('update_time', 'DESC')
-                ->findAll();
+                ->all();
             $accountsMore = JetAccount::create()
                 ->where('status', 0)->where('use_count', $divideCount, '>=')
                 ->order('use_count', 'ASC')->order('update_time', 'DESC')
-                ->findAll();
+                ->all();
             $accountsDel = JetAccount::create()->where('status', 1)
                 ->order('status', 'ASC')->order('update_time', 'DESC')
-                ->findAll();
+                ->all();
             $accountsEffect = JetAccount::create()->where('status', -1)
                 ->order('status', 'ASC')->order('update_time', 'DESC')
-                ->findAll();
+                ->all();
         }
         $data['item'] = (object)$item;
         $data['accounts'] = $accounts or [];

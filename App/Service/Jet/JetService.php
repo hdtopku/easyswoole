@@ -19,7 +19,7 @@ class JetService extends WebService
     function get_mails()
     {
         $redis = new RedisService();
-        $words = $redis->get('words');
+        $words = $redis->all('words');
         return json_decode($words);
     }
 
@@ -47,7 +47,7 @@ class JetService extends WebService
         $need_reg_mails = [];
         foreach ($words as $key => $val) {
             $account = substr($val, 0, -1);
-            $jet = JetAccount::create()->get(['username' => $account]);
+            $jet = JetAccount::create()->all(['username' => $account]);
             if (!$jet) {
                 $jet = JetAccount::create(
                     ['username' => $account, 'password' => 'Nobug996', 'status' => -1]
