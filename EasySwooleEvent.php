@@ -39,9 +39,7 @@ class EasySwooleEvent implements Event
             $response->withHeader('Access-Control-Allow-Origin', '*');
             $response->withHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, OPTIONS');
             $response->withHeader('Access-Control-Allow-Credentials', 'true');
-            $response->withHeader('Access-Control-Max-Age', 3600);
-            $response->withHeader('Access-Control-Expose-Headers', 'Authorization, authenticated');
-            $response->withHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Depth, User-Agent, X-File-Size, X-Requested-With, X-Requested-By, If-Modified-Since, X-File-Name, X-File-Type, Cache-Control, Origin');
+            $response->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
             if ($request->getMethod() === 'OPTIONS') {
                 $response->withStatus(\EasySwoole\Http\Message\Status::CODE_OK);
                 return false;
@@ -76,8 +74,8 @@ class EasySwooleEvent implements Event
         Run::attachTemplateRender(ServerManager::getInstance()->getSwooleServer());
     }
 
-    public static function onRequest(Request $request, Response $response): bool
-    {
+//    public static function onRequest(Request $request, Response $response): bool
+//    {
 //        //拦截请求
 //        try {
 //            Run::attachRequest($request, $response);
@@ -93,8 +91,8 @@ class EasySwooleEvent implements Event
 //            $response->withStatus(Status::CODE_OK);
 //            return false;
 //        }
-        return true;
-    }
+//        return true;
+//    }
 
     public static function afterRequest(Request $request, Response $response): void
     {
