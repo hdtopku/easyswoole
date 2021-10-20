@@ -22,10 +22,10 @@ class AM extends Controller
         $item = null;
         if (array_key_exists('link', $req)) {
             $req['link'] = trim($req['link']);
-            $item = Links::create()->all(['link' => $req['link']]);
+            $item = Links::create()->get(['link' => $req['link']]);
         }
         if (array_key_exists('id', $req)) {
-            $item = Links::create()->all($req['id']);
+            $item = Links::create()->get($req['id']);
         }
         if ($item) {
             $data['item'] = [$item];
@@ -132,7 +132,6 @@ class AM extends Controller
         } else {
             $data['allUsedLength'] = 0;
         }
-        var_dump($data);
         $this->response()->write(json_encode(
             ['errno' => '0', 'errmsg' => 'ok', 'data' => $data],
             JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
