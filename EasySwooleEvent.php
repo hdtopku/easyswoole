@@ -23,24 +23,17 @@ class EasySwooleEvent implements Event
         // TODO: Implement initialize() method.
         date_default_timezone_set('Asia/Shanghai');
         // whoops
-        \EasySwoole\Component\Di::getInstance()->set(\EasySwoole\EasySwoole\SysConst::HTTP_GLOBAL_ON_REQUEST, function (\EasySwoole\Http\Request $request, \EasySwoole\Http\Response $response): bool {
-            // 拦截请求
-            if (\EasySwoole\EasySwoole\Core::getInstance()->runMode() == 'dev') {
-                \EasySwoole\Whoops\Run::attachRequest($request, $response);
-            }
-            return true;
-        });
-        if (\EasySwoole\EasySwoole\Core::getInstance()->runMode() == 'dev') {
-            $whoops = new \EasySwoole\Whoops\Run();
-            $whoops->pushHandler(new \EasySwoole\Whoops\Handler\PrettyPageHandler());  // 输出一个漂亮的页面
-            $whoops->pushHandler(new \EasySwoole\Whoops\Handler\CallbackHandler(function ($exception, $inspector, $run, $handle) {
-                // 可以推进多个Handle 支持回调做更多后续处理
-            }));
-            $whoops->register();
-        }
         // 实现 onRequest 事件
         \EasySwoole\Component\Di::getInstance()->set(\EasySwoole\EasySwoole\SysConst::HTTP_GLOBAL_ON_REQUEST, function (\EasySwoole\Http\Request $request, \EasySwoole\Http\Response $response): bool {
-
+            if (\EasySwoole\EasySwoole\Core::getInstance()->runMode() == 'dev') {
+                \EasySwoole\Whoops\Run::attachRequest($request, $response);
+                $whoops = new \EasySwoole\Whoops\Run();
+                $whoops->pushHandler(new \EasySwoole\Whoops\Handler\PrettyPageHandler());  // 输出一个漂亮的页面
+                $whoops->pushHandler(new \EasySwoole\Whoops\Handler\CallbackHandler(function ($exception, $inspector, $run, $handle) {
+                    // 可以推进多个Handle 支持回调做更多后续处理
+                }));
+                $whoops->register();
+            }
             ###### 处理请求的跨域问题 ######
             $response->withHeader('Access-Control-Allow-Origin', '*');
             $response->withHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, OPTIONS');

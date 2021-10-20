@@ -132,6 +132,7 @@ class AM extends Controller
         } else {
             $data['allUsedLength'] = 0;
         }
+        var_dump($data);
         $this->response()->write(json_encode(
             ['errno' => '0', 'errmsg' => 'ok', 'data' => $data],
             JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES));
