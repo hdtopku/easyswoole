@@ -56,7 +56,7 @@ class EasySwooleEvent implements Event
         $config = new Config();
         $config->setUser('root');
         $config->setPassword('wz95ctxb3hvxezu57ko');
-        $config->setHost('182.92.111.83');
+        $config->setHost('121.41.170.120');
         # mysql连接池配置
         $config->setGetObjectTimeout(3.0); //设置获取连接池对象超时时间
         $config->setIntervalCheckTime(60 * 1000); //设置检测连接存活执行回收和创建的周期
@@ -74,7 +74,7 @@ class EasySwooleEvent implements Event
         //配置连接池连接数
         try {
             $redisPoolConfig = \EasySwoole\RedisPool\RedisPool::getInstance()->register(new \EasySwoole\Redis\Config\RedisConfig([
-                'host' => '182.92.111.83',
+                'host' => '121.41.170.120',
                 'port' => '6379',
                 'auth' => 'wz95ctxb3hvxezu57ko',
                 'serialize' => \EasySwoole\Redis\Config\RedisConfig::SERIALIZE_NONE
